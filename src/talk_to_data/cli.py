@@ -34,9 +34,9 @@ def main():
 
     # setup
     p_setup = subparsers.add_parser("setup", help="Interactive agentic walkthrough to configure a new project")
-    p_setup.add_argument("data_paths", nargs="+", help="Files and/or directories with source data")
-    p_setup.add_argument("--output-dir", default="./output", help="Directory for pipeline outputs (default: ./output)")
-    p_setup.add_argument("--config", default=None, help="Path for the generated config YAML (default: configs/<name>.yaml)")
+    p_setup.add_argument("data_paths", nargs="*", default=[], help="Files and/or directories with source data (asked interactively if omitted)")
+    p_setup.add_argument("--output-dir", default=None, help="Directory for pipeline outputs (asked interactively if omitted)")
+    p_setup.add_argument("--config", default=None, help="Path for the generated config YAML (asked interactively if omitted)")
     p_setup.add_argument("--max-budget", type=float, default=10.0, help="Maximum agent budget in USD (default: 10.0)")
 
     # discover
@@ -83,7 +83,7 @@ def main():
     elif args.command == "setup":
         from .agents.setup import run_setup_agent
         run_setup_agent(
-            data_paths=args.data_paths,
+            data_paths=args.data_paths or None,
             output_dir=args.output_dir,
             config_path=args.config,
             max_budget_usd=args.max_budget,

@@ -212,8 +212,19 @@ Proceed through these stages IN ORDER. After each stage, write or update the
 YAML config file with the settings decided so far.
 
 ### Stage 1: Project Basics
+- If data paths, output directory, or config file path were NOT provided
+  (the initial message will indicate what's missing), ask the user for them
+  FIRST before doing anything else:
+  1. **Source data paths**: Ask for file paths and/or directory paths
+     containing their source data (CSV files, parquet files, clinical notes,
+     etc.). Multiple paths are allowed. Validate that the paths exist.
+  2. **Output directory**: Where pipeline outputs should go. Suggest
+     `./output` as a reasonable default.
+  3. **Config file path**: Where to save the generated YAML config. Suggest
+     `configs/<project_name>.yaml` as a reasonable default (once the project
+     name is known).
 - Ask the user for a project name (short identifier, no spaces).
-- Confirm the input data paths (provided as arguments) and output directory.
+- Confirm all paths and the project name with the user.
 - Create the initial YAML file with the `project` section (using `input_paths` list).
 
 ### Stage 2: Data Exploration

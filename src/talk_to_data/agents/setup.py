@@ -41,9 +41,9 @@ def _print_message(message):
 
 
 def run_setup_agent(
-    data_paths: list[str],
-    output_dir: str = "./output",
-    config_path: str = None,
+    data_paths: list[str] | None = None,
+    output_dir: str | None = None,
+    config_path: str | None = None,
     max_turns: int = 80,
     max_budget_usd: float = DEFAULT_MAX_BUDGET_USD,
 ) -> Optional[str]:
@@ -53,11 +53,16 @@ def run_setup_agent(
     conversation. The agent explores data files, asks the user questions,
     waits for responses, and writes the YAML config file.
 
+    All parameters are optional. When omitted, the agent will ask the user
+    for them interactively at the start of the session.
+
     Args:
         data_paths: Files and/or directories containing source data.
+            If None, the agent asks the user interactively.
         output_dir: Directory for pipeline outputs.
-        config_path: Path for the generated config YAML. If None,
-            defaults to configs/<first_dir_name>.yaml.
+            If None, the agent asks the user interactively.
+        config_path: Path for the generated config YAML.
+            If None, derived from project name or asked interactively.
         max_turns: Maximum agent interaction turns.
         max_budget_usd: Maximum budget in USD for the agent session.
 
@@ -68,31 +73,49 @@ def run_setup_agent(
     from claude_agent_sdk.types import AssistantMessage, ResultMessage, TextBlock
     from .discovery import _log_usage
 
-    resolved_paths = [str(Path(p).resolve()) for p in data_paths]
-
-    # Determine config path
-    if config_path is None:
-        first = Path(resolved_paths[0])
-        dir_name = first.name if first.is_dir() else first.parent.name
-        config_path = str(Path("configs") / f"{dir_name}.yaml")
-
-    # Determine working directory
-    cwd = str(Path(os.path.commonpath(
-        [str(Path(p).parent) if Path(p).is_file() else str(p) for p in resolved_paths]
-    )))
-
     ontology_list = "\n".join(f"  - {oid}: {desc}" for oid, desc in ONTOLOGY_DESCRIPTIONS.items())
-    paths_list = "\n".join(f"  - {p}" for p in resolved_paths)
 
-    initial_prompt = (
-        "I need help setting up a new Talk-to-Data project.\n\n"
-        f"**Source data paths**:\n{paths_list}\n"
-        f"**Output directory**: {output_dir}\n"
-        f"**Config file path**: {config_path}\n\n"
-        f"**Available ontologies**:\n{ontology_list}\n\n"
-        "Please walk me through the setup process step by step, "
-        "exploring my data files and writing the config YAML as we go."
-    )
+    if data_paths:
+        resolved_paths = [str(Path(p).resolve()) for p in data_paths]
+        paths_list = "\n".join(f"  - {p}" for p in resolved_paths)
+
+        # Determine config path from data paths if not provided
+        if config_path is None:
+            first = Path(resolved_paths[0])
+            dir_name = first.name if first.is_dir() else first.parent.name
+            config_path = str(Path("configs") / f"{dir_name}.yaml")
+
+        # Determine working directory
+        cwd = str(Path(os.path.commonpath(
+            [str(Path(p).parent) if Path(p).is_file() else str(p) for p in resolved_paths]
+        )))
+
+        # Build prompt with known parameters
+        prompt_parts = ["I need help setting up a new Talk-to-Data project.\n"]
+        prompt_parts.append(f"**Source data paths**:\n{paths_list}\n")
+        if output_dir:
+            prompt_parts.append(f"**Output directory**: {output_dir}\n")
+        else:
+            prompt_parts.append("**Output directory**: _(please ask me)_\n")
+        prompt_parts.append(f"**Config file path**: {config_path}\n")
+        prompt_parts.append(f"\n**Available ontologies**:\n{ontology_list}\n\n")
+        prompt_parts.append(
+            "Please walk me through the setup process step by step, "
+            "exploring my data files and writing the config YAML as we go."
+        )
+        initial_prompt = "\n".join(prompt_parts)
+    else:
+        # Fully interactive mode -- agent asks for everything
+        cwd = str(Path.cwd())
+        initial_prompt = (
+            "I need help setting up a new Talk-to-Data project.\n\n"
+            "I haven't specified any paths yet. Please start by asking me for:\n"
+            "1. The paths to my source data files and/or directories\n"
+            "2. Where I'd like the pipeline output directory to be\n"
+            "3. Where to save the generated config YAML file\n\n"
+            f"**Available ontologies**:\n{ontology_list}\n\n"
+            "Then walk me through the rest of the setup process step by step."
+        )
 
     env = {**os.environ, "CLAUDECODE": ""}
 
