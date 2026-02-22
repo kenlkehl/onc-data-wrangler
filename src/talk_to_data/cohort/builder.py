@@ -142,9 +142,12 @@ class CohortBuilder:
 
         if "death_date" in df.columns:
             df["birth_to_death_years"] = (df["death_date"] - df["birth_date"]) / pd.Timedelta(days=365.25)
-            df = df.drop(columns=["birth_date", "death_date"], axis=1)
-        else:
-            df = df.drop(columns=["birth_date"], axis=1)
+            df = df.drop(columns=["death_date"], axis=1)
+
+        # Keep birth_date in the output -- the DatabaseBuilder needs it for
+        # date de-identification of extraction tables (converting raw dates to
+        # *_years_since_birth).  The database builder's _deidentify_dates_df
+        # will drop birth_date from the final DuckDB cohort table.
 
         return df
 

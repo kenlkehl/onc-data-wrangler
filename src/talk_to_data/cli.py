@@ -17,7 +17,7 @@ def main():
     # pipeline
     p_pipeline = subparsers.add_parser("pipeline", help="Run the data processing pipeline")
     p_pipeline.add_argument("config", help="Path to project YAML config")
-    p_pipeline.add_argument("--stages", nargs="+", choices=("cohort", "extract", "harmonize", "database", "metadata"), help="Stages to run (default: all)")
+    p_pipeline.add_argument("--stages", nargs="+", choices=("cohort", "prepare_notes", "extract", "harmonize", "propose_tables", "database", "metadata"), help="Stages to run (default: all)")
     p_pipeline.add_argument("--resume", action="store_true", help="Resume extraction from checkpoint")
 
     # serve
@@ -59,7 +59,7 @@ def main():
 
     if args.command == "pipeline":
         from .agents.pipeline import run_pipeline
-        asyncio.run(run_pipeline(config_path=args.config, stages=args.stages, resume=args.resume))
+        run_pipeline(config_path=args.config, stages=args.stages, resume=args.resume)
 
     elif args.command == "serve":
         from .query.mcp_server import create_server_from_config
@@ -82,12 +82,12 @@ def main():
 
     elif args.command == "setup":
         from .agents.setup import run_setup_agent
-        asyncio.run(run_setup_agent(
+        run_setup_agent(
             data_paths=args.data_paths,
             output_dir=args.output_dir,
             config_path=args.config,
             max_budget_usd=args.max_budget,
-        ))
+        )
 
     elif args.command == "discover":
         from .agents.discovery import run_discovery_agent

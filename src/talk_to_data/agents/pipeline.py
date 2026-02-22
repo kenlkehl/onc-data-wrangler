@@ -146,9 +146,22 @@ def _run_cohort(config: ProjectConfig):
         else:
             logger.warning("Diagnosis file not found: %s", coh.diagnosis_file)
 
+    # Load demographics file if specified
+    demographics_df = None
+    if coh.demographics_file:
+        demo_path = config.find_file(coh.demographics_file)
+        if demo_path and demo_path.exists():
+            if demo_path.suffix == ".parquet":
+                demographics_df = pd.read_parquet(demo_path)
+            else:
+                demographics_df = pd.read_csv(demo_path, low_memory=False)
+            logger.info("Loaded demographics file %s: %d rows", demo_path.name, len(demographics_df))
+        else:
+            logger.warning("Demographics file not found: %s", coh.demographics_file)
+
     # Build cohort
     builder = CohortBuilder(cohort_config)
-    cohort_df = builder.build_from_dataframes(patient_df, diagnosis_df)
+    cohort_df = builder.build_from_dataframes(patient_df, diagnosis_df, demographics_df)
 
     # Save
     output_path = output_dir / "cohort.parquet"

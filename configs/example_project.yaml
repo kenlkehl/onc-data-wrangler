@@ -3,8 +3,25 @@
 
 project:
   name: "my_study"
-  input_dir: /path/to/source/data      # Source CSVs, parquets, clinical notes
-  output_dir: /path/to/output           # Extractions, database, metadata
+  input_paths:                       # Files and/or directories with source data
+    - /path/to/source/data
+  output_dir: /path/to/output        # Extractions, database, metadata
+
+# --- Cohort: Patient selection and demographics ---
+cohort:
+  patient_file: "patients.csv"       # CSV/parquet found in input_paths
+  diagnosis_file: null               # Optional: file with diagnosis codes for filtering
+  demographics_file: null            # Optional: file with demographics if not in patient_file
+  patient_id_column: record_id       # Column with patient/record IDs
+  diagnosis_code_column: null        # Column with ICD/diagnosis codes
+  diagnosis_code_filter: []          # ICD code prefixes to include (e.g. ["C34", "C45"])
+  sex_column: null
+  race_column: null
+  ethnicity_column: null
+  birth_date_column: null
+  death_date_column: null
+  death_indicator_column: null
+  followup_date: "2025-07-01"        # Census date for survival calculation
 
 # --- Extraction: Unstructured text extraction from clinical notes ---
 extraction:
@@ -16,7 +33,9 @@ extraction:
     max_tokens: 16384
     temperature: 0.0
   ontology_ids:
-    - naaccr                   # Available: naaccr, prissmm, omop, matchminer_ai, msk_chord
+    - pan_top                  # Available: naaccr, prissmm, omop, matchminer_ai, msk_chord, pan_top
+  notes_paths:                 # Paths to directories/files containing clinical notes
+    - /path/to/notes
   cancer_type: generic         # Or specific: lung, breast, colorectal, etc.
   chunk_tokens: 40000
   overlap_tokens: 200
@@ -30,10 +49,11 @@ extraction:
 
 # --- Database: DuckDB creation settings ---
 database:
-  record_id_prefix: patient    # Prefix for de-identified patient IDs
-  min_non_missing: 10          # Drop columns with fewer non-null values
+  deidentify_dates: true             # Convert dates to intervals since birth
+  record_id_prefix: patient          # Prefix for de-identified patient IDs
+  min_non_missing: 10                # Drop columns with fewer non-null values
   forbidden_output_columns:
-    - record_id                # Columns that must never appear in query output
+    - record_id                      # Columns that must never appear in query output
 
 # --- Query: MCP server settings ---
 query:

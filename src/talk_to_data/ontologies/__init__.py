@@ -10,6 +10,7 @@ Supported Ontologies:
 - prissmm: PRISSMM/GENIE BPC data model
 - omop: OMOP CDM with oncology extension
 - msk_chord: MSK-CHORD/cBioPortal clinical data model
+- pan_top: Pan-TOP thoracic oncology data extraction
 
 Usage:
     from talk_to_data.ontologies import OntologyRegistry, MultiOntologyExtractor

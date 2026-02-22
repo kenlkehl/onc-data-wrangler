@@ -140,7 +140,7 @@ class ProjectConfig:
             errors.append("Project name is required")
         return errors
 
-    def resolve_input_files(self, extensions: tuple = ((".csv", ".parquet"),)) -> list:
+    def resolve_input_files(self, extensions: tuple = (".csv", ".parquet")) -> list:
         """Collect files across all input paths.
 
         For each entry in input_paths: if it's a file with a matching
@@ -166,7 +166,7 @@ class ProjectConfig:
                             files.append(resolved)
         return sorted(files, key=lambda f: f.name)
 
-    def resolve_notes_files(self, extensions: tuple = ((".csv", ".parquet"),)) -> list:
+    def resolve_notes_files(self, extensions: tuple = (".csv", ".parquet")) -> list:
         """Collect notes files across extraction.notes_paths.
 
         Same logic as resolve_input_files but uses the notes_paths list.

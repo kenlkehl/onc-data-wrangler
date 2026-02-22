@@ -17,6 +17,15 @@ from ..config import ProjectConfig
 logger = logging.getLogger(__name__)
 
 
+def _load_cohort_ids(output_dir: str) -> list | None:
+    """Load original cohort patient IDs, or None if not available."""
+    path = Path(output_dir) / "cohort_ids.json"
+    if not path.exists():
+        return None
+    with open(path) as f:
+        return json.load(f)
+
+
 def filter_columns_by_non_missing(
     df: pd.DataFrame, min_non_missing: int = 10
 ) -> pd.DataFrame:
@@ -114,22 +123,31 @@ class DatabaseBuilder:
         return self.db_path
 
     def _collect_all_patient_ids(self) -> dict[str, str]:
-        """Scan all data sources to build a single consistent ID mapping."""
+        """Build a consistent original-ID → de-identified-ID mapping.
+
+        If the cohort stage was run, its id_map is reconstructed from
+        cohort_ids.json (the original IDs saved by the pipeline).  This
+        ensures extraction and harmonized data use the same de-identified
+        IDs as the cohort table.
+
+        If no cohort_ids.json exists (cohort stage was skipped), IDs are
+        collected from extraction shards and harmonized files and a fresh
+        mapping is created.
+        """
+        cohort_ids = _load_cohort_ids(str(self.output_dir))
+        if cohort_ids:
+            # Reconstruct the same mapping the CohortBuilder used
+            sorted_ids = sorted(set(str(x) for x in cohort_ids), key=str)
+            id_map = {
+                old_id: f"{self.record_id_prefix}_{i:06d}"
+                for i, old_id in enumerate(sorted_ids, start=1)
+            }
+            logger.info("Reconstructed cohort id_map: %d patients", len(id_map))
+            return id_map
+
+        # Fallback: no cohort stage — collect from extraction/harmonized data
         all_ids = set()
 
-        # Check cohort.parquet or cohort.csv for 'record_id'
-        cohort_parquet = self.output_dir / "cohort.parquet"
-        cohort_csv = self.output_dir / "cohort.csv"
-        if cohort_parquet.exists():
-            df = pd.read_parquet(cohort_parquet)
-            if "record_id" in df.columns:
-                all_ids.update(df["record_id"].dropna().unique())
-        elif cohort_csv.exists():
-            df = pd.read_csv(cohort_csv)
-            if "record_id" in df.columns:
-                all_ids.update(df["record_id"].dropna().unique())
-
-        # Check extractions/shard_*.parquet for 'patient_id'
         extractions_dir = self.output_dir / "extractions"
         if extractions_dir.exists():
             for shard in sorted(extractions_dir.glob("shard_*.parquet")):
@@ -137,7 +155,6 @@ class DatabaseBuilder:
                 if "patient_id" in df.columns:
                     all_ids.update(df["patient_id"].dropna().unique())
 
-        # Check harmonized/*.parquet for 'record_id'
         harmonized_dir = self.output_dir / "harmonized"
         if harmonized_dir.exists():
             for parquet_file in sorted(harmonized_dir.glob("*.parquet")):
@@ -150,13 +167,15 @@ class DatabaseBuilder:
             old_id: f"{self.record_id_prefix}_{i:06d}"
             for i, old_id in enumerate(sorted_ids, start=1)
         }
-        logger.info("Collected %d unique patient IDs", len(id_map))
+        logger.info("Collected %d unique patient IDs (no cohort)", len(id_map))
         return id_map
 
     def _load_birth_dates(self, id_map: dict) -> Optional[dict]:
         """Load birth dates from cohort for date de-identification.
 
         Returns a mapping from de-identified record_id to birth_date.
+        The cohort file already has de-identified record_ids and birth_date,
+        so we can build the mapping directly.
         """
         cohort_parquet = self.output_dir / "cohort.parquet"
         cohort_csv = self.output_dir / "cohort.csv"
@@ -177,12 +196,12 @@ class DatabaseBuilder:
 
         df["birth_date"] = pd.to_datetime(df["birth_date"], errors="coerce")
 
+        # Cohort file already contains de-identified record_ids
         birth_dates = {}
         for _, row in df.iterrows():
-            old_id = str(row["record_id"])
-            if old_id in id_map and pd.notna(row["birth_date"]):
-                new_id = id_map[old_id]
-                birth_dates[new_id] = row["birth_date"]
+            record_id = str(row["record_id"])
+            if pd.notna(row["birth_date"]):
+                birth_dates[record_id] = row["birth_date"]
 
         logger.info("Loaded %d birth dates for date de-identification",
                      len(birth_dates))
@@ -198,7 +217,7 @@ class DatabaseBuilder:
         if self._birth_dates is None or "record_id" not in df.columns:
             return df
 
-        skip_columns = {"record_id", "category", "source"}
+        skip_columns = {"record_id", "category", "source", "birth_date"}
         date_cols = []
 
         for col in df.columns:
@@ -228,7 +247,11 @@ class DatabaseBuilder:
         return df
 
     def _load_cohort(self, con, id_map: dict):
-        """Load the cohort table from output directory."""
+        """Load the cohort table from output directory.
+
+        The cohort file is already de-identified by CohortBuilder, so
+        record_id values are not re-mapped here.
+        """
         cohort_parquet = self.output_dir / "cohort.parquet"
         cohort_csv = self.output_dir / "cohort.csv"
 
@@ -240,11 +263,13 @@ class DatabaseBuilder:
             logger.warning("No cohort file found, skipping cohort table")
             return
 
-        if "record_id" in df.columns:
-            df = _deidentify_ids(df, "record_id", self.record_id_prefix, id_map)
+        # Cohort is already de-identified by CohortBuilder — no re-mapping.
 
-        if self.deidentify_dates:
-            df = self._deidentify_dates_df(df)
+        # Drop birth_date from the final cohort table — it was kept in the
+        # parquet only so _load_birth_dates can use it for de-identifying
+        # dates in extraction/harmonized tables.
+        if "birth_date" in df.columns:
+            df = df.drop(columns=["birth_date"])
 
         df = filter_columns_by_non_missing(df, self.min_non_missing)
 

@@ -114,6 +114,7 @@ project:
 cohort:
   patient_file: "<filename>"       # CSV/parquet found in input_paths
   diagnosis_file: "<filename>"     # Optional: file with diagnosis codes for filtering
+  demographics_file: "<filename>"  # Optional: file with demographics if not in patient_file
   patient_id_column: record_id     # Column with patient/record IDs
   diagnosis_code_column: null      # Column with ICD/diagnosis codes
   diagnosis_code_filter: []        # ICD code prefixes to include (e.g. ["C34", "C45"])
@@ -225,15 +226,30 @@ YAML config file with the settings decided so far.
 ### Stage 3: Cohort Definition
 - Identify the patient ID column across the data files.
 - Identify which file contains the patient roster (patient_file).
-- Look for demographic columns (sex, race, birth date, death date).
-- Look for diagnosis code columns (ICD codes, etc.) and which file they're in (diagnosis_file).
+- **Search ALL source files** in input_paths for demographic columns
+  (sex, race, ethnicity, birth date, death date, death indicator).
+  Demographics may be in the patient roster file itself, or in a
+  separate file. Check every CSV/parquet file for these columns.
+- If demographics are found in a file OTHER than the patient_file,
+  set `cohort.demographics_file` to that filename. The pipeline will
+  automatically merge demographics from the separate file into the
+  cohort. The demographic column names (sex_column, race_column, etc.)
+  should reference columns as they appear in whichever file contains
+  them.
+- If no demographic columns are found in any file, inform the user
+  that the cohort will lack demographics (sex, race, etc.) and the
+  database will not include these fields. Ask if they have another
+  data source with demographics.
+- Look for diagnosis code columns (ICD codes, etc.) and which file
+  they're in (diagnosis_file).
 - Ask the user about the patient ID column name.
 - If diagnosis codes are found, ask about inclusion/exclusion criteria
   (e.g., which ICD codes or site codes to filter on).
 - Write settings to the `cohort` section of the YAML (patient_file,
-  diagnosis_file, patient_id_column, demographic columns, diagnosis
-  filtering). Downstream extraction and harmonization stages will
-  automatically filter to only cohort patients.
+  diagnosis_file, demographics_file, patient_id_column, demographic
+  columns, diagnosis filtering). Downstream extraction and
+  harmonization stages will automatically filter to only cohort
+  patients.
 - Also set `patient_id_column` in the `extraction` section to match.
 
 ### Stage 4: Notes Configuration
