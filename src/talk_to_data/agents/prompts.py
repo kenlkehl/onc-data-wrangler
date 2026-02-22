@@ -130,9 +130,14 @@ extraction:
   llm:
     provider: openai               # "openai" (vLLM), "anthropic", or "vertex"
     model: <model_name>
-    base_url: <url>                # Only for openai/vLLM provider
+    base_url: <url>                # Only for openai/vLLM provider (omit when using vllm_servers)
     max_tokens: 16384
     temperature: 0.0
+  vllm_servers:                    # Auto-managed vLLM servers (optional, openai provider only)
+    gpus: [0, 1, 2, 3]            # GPU IDs to use; pipeline launches servers automatically
+    gpus_per_server: 1             # GPUs per server instance (>1 for tensor parallelism)
+    base_port: 29500               # First server listens here; subsequent servers use +1, +2, …
+    extra_args: {}                 # Extra vLLM CLI flags (e.g. {max_model_len: 32768})
   notes_paths:                     # Paths to directories/files containing clinical notes
     - "<path_or_dir>"
   ontology_ids:
@@ -225,9 +230,8 @@ information listed below. Never start with data exploration.
      etc.). Multiple paths are allowed. Validate that the paths exist.
   2. **Output directory**: Where pipeline outputs should go. Suggest
      `./output` as a reasonable default.
-  3. **Config file path**: Where to save the generated YAML config. Suggest
-     `configs/<project_name>.yaml` as a reasonable default (once the project
-     name is known).
+  3. **Config file path**: Where to save the generated YAML config. Default
+     to `<output_dir>/<project_name>.yaml` (i.e. inside the output directory).
 - Ask the user for a project name (short identifier, no spaces).
 - Confirm all paths and the project name with the user.
 - Create the initial YAML file with the `project` section (using `input_paths` list).
@@ -287,6 +291,31 @@ information listed below. Never start with data exploration.
   - Local vLLM server (for PHI-containing data on local GPUs)
   - Claude API via Anthropic (for de-identified data)
   - Claude API via Vertex AI (for de-identified data in GCP)
+- If the user chooses local vLLM:
+  - Ask for the model name/path (e.g. a HuggingFace model ID).
+  - Ask whether the pipeline should **auto-manage vLLM servers** or
+    connect to a pre-existing server.
+  - If auto-managed: run `nvidia-smi --query-gpu=index,name,memory.total
+    --format=csv,noheader` (via Bash) to detect available GPUs. Show the
+    user the list and ask which GPU IDs to use (default: all).
+  - Ask how many GPUs per server instance:
+    - **1 GPU per server** (default) — launches N independent servers, one
+      per GPU. Best throughput for models that fit on a single GPU.
+    - **Multiple GPUs per server** — uses tensor parallelism within each
+      server. Needed for large models that don't fit in one GPU's memory.
+      `len(gpus)` must be divisible by `gpus_per_server`.
+  - Set `patient_workers` to at least the number of servers (e.g.
+    `len(gpus) // gpus_per_server * 2`) so work is distributed evenly.
+  - Write `extraction.vllm_servers` (gpus, gpus_per_server, base_port)
+    and the LLM settings (provider: openai, model name) to YAML. Do NOT
+    set `base_url` when using auto-managed servers — the pipeline fills
+    it in automatically.
+  - Ask if they need extra vLLM flags (e.g. `max_model_len`,
+    `gpu_memory_utilization`, `dtype`). Write any to
+    `extraction.vllm_servers.extra_args`.
+  - If connecting to a pre-existing server: ask for the base_url and
+    write it to `extraction.llm.base_url`. Leave `vllm_servers.gpus`
+    empty.
 - Write the extraction LLM settings to YAML.
 - If the user has no notes files, note that extraction will be skipped.
 

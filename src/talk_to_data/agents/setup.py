@@ -84,11 +84,11 @@ async def _run_setup_agent_async(
         resolved_paths = [str(Path(p).resolve()) for p in data_paths]
         paths_list = "\n".join(f"  - {p}" for p in resolved_paths)
 
-        # Determine config path from data paths if not provided
-        if config_path is None:
+        # Determine config path: default to <output_dir>/<dir_name>.yaml
+        if config_path is None and output_dir is not None:
             first = Path(resolved_paths[0])
             dir_name = first.name if first.is_dir() else first.parent.name
-            config_path = str(Path("configs") / f"{dir_name}.yaml")
+            config_path = str(Path(output_dir) / f"{dir_name}.yaml")
 
         # Determine working directory
         cwd = str(Path(os.path.commonpath(
@@ -102,7 +102,10 @@ async def _run_setup_agent_async(
             prompt_parts.append(f"**Output directory**: {output_dir}\n")
         else:
             prompt_parts.append("**Output directory**: _(please ask me)_\n")
-        prompt_parts.append(f"**Config file path**: {config_path}\n")
+        if config_path:
+            prompt_parts.append(f"**Config file path**: {config_path}\n")
+        else:
+            prompt_parts.append("**Config file path**: _(default to `<output_dir>/<project_name>.yaml`)_\n")
         prompt_parts.append(f"\n**Available ontologies**:\n{ontology_list}\n\n")
         prompt_parts.append(
             "IMPORTANT: Before exploring any data files, first complete Stage 1 "
@@ -148,54 +151,48 @@ async def _run_setup_agent_async(
     last_result_message = None
 
     client = ClaudeSDKClient(options=options)
-    all_streamed_texts = []
 
-    try:
-        # Connect and send initial prompt
-        await client.connect(initial_prompt)
-
-        # Receive streaming response to initial prompt
+    async def _receive_and_print() -> ResultMessage | None:
+        """Receive messages from the agent, print text blocks, return ResultMessage."""
+        result_msg = None
         async for message in client.receive_response():
             if isinstance(message, AssistantMessage):
                 for block in message.content:
                     if isinstance(block, TextBlock):
                         print(block.text, flush=True)
-                        all_streamed_texts.append(block.text)
             elif isinstance(message, ResultMessage):
-                last_result_message = message
-                result_text = message.result
-                logger.debug(
-                    "ResultMessage: subtype=%s, is_error=%s, result_len=%d, num_turns=%d",
-                    message.subtype, message.is_error, len(message.result or ""), message.num_turns,
-                )
+                result_msg = message
+        return result_msg
 
-        if last_result_message is None:
-            # Bidirectional conversation loop
-            while True:
-                try:
-                    user_input = await asyncio.to_thread(input, "> ")
-                except (EOFError, KeyboardInterrupt):
-                    break
+    try:
+        # Connect, then send initial prompt via query().
+        # Note: connect() with a string prompt does NOT actually send it
+        # when using stream-json input mode. We must use query() instead.
+        await client.connect()
+        await client.query(initial_prompt)
 
-                all_streamed_texts = []
-                await client.query(user_input)
+        # Receive response to initial prompt
+        last_result_message = await _receive_and_print()
 
-                async for message in client.receive_response():
-                    if isinstance(message, AssistantMessage):
-                        for block in message.content:
-                            if isinstance(block, TextBlock):
-                                print(block.text, flush=True)
-                                all_streamed_texts.append(block.text)
-                    elif isinstance(message, ResultMessage):
-                        last_result_message = message
-                        result_text = message.result
+        # Bidirectional conversation loop: prompt user for input, send to
+        # agent, print response, repeat. A ResultMessage after each turn
+        # just means the agent finished its current response -- it does NOT
+        # mean the session is over. We keep looping until the agent hits
+        # max_turns, the budget is exhausted, or the user interrupts.
+        while True:
+            try:
+                user_input = await asyncio.to_thread(input, "> ")
+            except (EOFError, KeyboardInterrupt):
+                break
 
-                if last_result_message is not None:
-                    break
+            await client.query(user_input)
+            last_result_message = await _receive_and_print()
+
     finally:
         await client.disconnect()
 
     if last_result_message:
+        result_text = last_result_message.result
         _log_usage(last_result_message)
 
     return result_text
