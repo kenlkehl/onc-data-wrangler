@@ -142,7 +142,7 @@ class CohortBuilder:
 
         if "death_date" in df.columns:
             df["birth_to_death_years"] = (df["death_date"] - df["birth_date"]) / pd.Timedelta(days=365.25)
-            df = df.drop(columns=["death_date"], axis=1)
+            df = df.drop(columns=["death_date"])
 
         # Keep birth_date in the output -- the DatabaseBuilder needs it for
         # date de-identification of extraction tables (converting raw dates to

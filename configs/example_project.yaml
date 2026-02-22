@@ -93,3 +93,12 @@ field_mappings:
   #     value_map:
   #       PDL1: PD-L1
   #       PDLI: PD-L1
+
+# --- Per-file patient ID column overrides ---
+# If different source files use different column names for the patient
+# identifier, map each filename to its patient ID column here.
+# Files not listed fall back to cohort.patient_id_column above.
+patient_id_columns:
+  # diagnoses.csv: PATIENT_ID
+  # demographics.csv: MRN
+  # notes.parquet: pat_id

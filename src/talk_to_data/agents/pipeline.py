@@ -143,6 +143,11 @@ def _run_cohort(config: ProjectConfig):
             else:
                 diagnosis_df = pd.read_csv(diag_path, low_memory=False)
             logger.info("Loaded diagnosis file %s: %d rows", diag_path.name, len(diagnosis_df))
+            # Rename patient ID column to match cohort patient_id_column
+            diag_pid = config.get_patient_id_column(coh.diagnosis_file)
+            if diag_pid != coh.patient_id_column and diag_pid in diagnosis_df.columns:
+                diagnosis_df = diagnosis_df.rename(columns={diag_pid: coh.patient_id_column})
+                logger.info("Renamed patient ID column '%s' -> '%s' in %s", diag_pid, coh.patient_id_column, coh.diagnosis_file)
         else:
             logger.warning("Diagnosis file not found: %s", coh.diagnosis_file)
 
@@ -156,6 +161,11 @@ def _run_cohort(config: ProjectConfig):
             else:
                 demographics_df = pd.read_csv(demo_path, low_memory=False)
             logger.info("Loaded demographics file %s: %d rows", demo_path.name, len(demographics_df))
+            # Rename patient ID column to match cohort patient_id_column
+            demo_pid = config.get_patient_id_column(coh.demographics_file)
+            if demo_pid != coh.patient_id_column and demo_pid in demographics_df.columns:
+                demographics_df = demographics_df.rename(columns={demo_pid: coh.patient_id_column})
+                logger.info("Renamed patient ID column '%s' -> '%s' in %s", demo_pid, coh.patient_id_column, coh.demographics_file)
         else:
             logger.warning("Demographics file not found: %s", coh.demographics_file)
 
@@ -197,6 +207,12 @@ def _run_prepare_notes(config: ProjectConfig):
             df = pd.read_parquet(f)
         else:
             df = pd.read_csv(f, low_memory=False)
+
+        # Check for per-file patient ID column and rename if needed
+        file_pid = config.get_patient_id_column(f.name)
+        if file_pid != pid_col and file_pid in df.columns and pid_col not in df.columns:
+            df = df.rename(columns={file_pid: pid_col})
+            logger.info("  Renamed patient ID column '%s' -> '%s' in %s", file_pid, pid_col, f.name)
 
         if pid_col not in df.columns:
             logger.info("  Skipping %s: missing patient ID column '%s' (has: %s)", f.name, pid_col, list(df.columns))
@@ -384,7 +400,7 @@ def _run_harmonization(config: ProjectConfig):
     if cohort_set is None:
         logger.info("No cohort_ids.json found; harmonizing all patients")
 
-    pid_col = config.extraction.patient_id_column
+    pid_col = config.cohort.patient_id_column
 
     for source_file in config.resolve_input_files():
         logger.info("Harmonizing %s ...", source_file.name)
@@ -394,6 +410,12 @@ def _run_harmonization(config: ProjectConfig):
             src_df = pd.read_parquet(source_file)
         else:
             src_df = pd.read_csv(source_file, low_memory=False)
+
+        # Rename per-file patient ID column to the standard name
+        file_pid = config.get_patient_id_column(source_file.name)
+        if file_pid != pid_col and file_pid in src_df.columns and pid_col not in src_df.columns:
+            src_df = src_df.rename(columns={file_pid: pid_col})
+            logger.info("  Renamed patient ID column '%s' -> '%s' in %s", file_pid, pid_col, source_file.name)
 
         # Filter to cohort
         if cohort_set and pid_col in src_df.columns:

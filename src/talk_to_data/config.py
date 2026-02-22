@@ -128,6 +128,21 @@ class ProjectConfig:
     chatbot: ChatbotConfig = field(default_factory=ChatbotConfig)
     max_budget_usd: float = 10.0
     field_mappings: dict[str, Any] = field(default_factory=dict)
+    patient_id_columns: dict[str, str] = field(default_factory=dict)
+
+    def get_patient_id_column(self, filename: str) -> str:
+        """Get the patient ID column name for a specific file.
+
+        Checks patient_id_columns by exact filename, then by stem,
+        then falls back to cohort.patient_id_column.
+        """
+        if filename in self.patient_id_columns:
+            return self.patient_id_columns[filename]
+        stem = Path(filename).stem
+        for key, col in self.patient_id_columns.items():
+            if Path(key).stem == stem:
+                return col
+        return self.cohort.patient_id_column
 
     def validate(self) -> list:
         """Validate configuration, returning a list of error messages."""
@@ -312,6 +327,9 @@ def load_config(path: str) -> ProjectConfig:
     # Field mappings
     config.field_mappings = raw.get("field_mappings", {}) or {}
 
+    # Per-file patient ID columns
+    config.patient_id_columns = raw.get("patient_id_columns", {}) or {}
+
     return config
 
 
@@ -337,6 +355,7 @@ def save_config(config: ProjectConfig, path: str):
         "query": _to_dict(config.query),
         "chatbot": _to_dict(config.chatbot),
         "field_mappings": config.field_mappings,
+        "patient_id_columns": config.patient_id_columns,
     }
 
     Path(path).parent.mkdir(parents=True, exist_ok=True)

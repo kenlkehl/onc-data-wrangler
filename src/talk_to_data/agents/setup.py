@@ -149,26 +149,126 @@ async def _run_setup_agent_async(
 
     result_text = None
     last_result_message = None
+    transcript: list[str] = []
+    transcript_dir: str | None = output_dir  # may be None until user provides it
+
+    def _transcript_path() -> Path | None:
+        if transcript_dir is None:
+            return None
+        p = Path(transcript_dir)
+        p.mkdir(parents=True, exist_ok=True)
+        return p / "agent_conversation_record.txt"
+
+    def _flush_transcript():
+        path = _transcript_path()
+        if path is not None:
+            path.write_text("\n".join(transcript) + "\n")
+
+    def _record_user(text: str):
+        transcript.append(f"USER:\n{text}\n")
+        _flush_transcript()
+
+    def _record_agent(text: str):
+        transcript.append(f"AGENT:\n{text}\n")
+        _flush_transcript()
+
+    def _try_detect_output_dir():
+        """Try to read output_dir from the config YAML the agent wrote."""
+        nonlocal transcript_dir
+        if transcript_dir is not None:
+            return
+        # Check the config_path we know about, or scan for recently written YAMLs
+        candidates = [config_path] if config_path else []
+        for cp in candidates:
+            if cp and Path(cp).exists():
+                try:
+                    import yaml
+                    with open(cp) as f:
+                        cfg = yaml.safe_load(f)
+                    od = (cfg or {}).get("project", {}).get("output_dir")
+                    if od:
+                        transcript_dir = od
+                        _flush_transcript()
+                        return
+                except Exception:
+                    pass
 
     client = ClaudeSDKClient(options=options)
 
-    async def _receive_and_print() -> ResultMessage | None:
-        """Receive messages from the agent, print text blocks, return ResultMessage."""
-        result_msg = None
-        async for message in client.receive_response():
-            if isinstance(message, AssistantMessage):
-                for block in message.content:
+    # All messages flow through a single asyncio.Queue so we can drain
+    # stale messages (e.g. reminders the CLI sends while the user is
+    # typing) before processing the response to a new query.
+    msg_queue: asyncio.Queue = asyncio.Queue()
+    _STREAM_END = object()
+
+    async def _message_reader():
+        """Background task: read messages from the SDK into our queue."""
+        try:
+            async for message in client.receive_messages():
+                await msg_queue.put(message)
+        except Exception as exc:
+            logger.debug("Message reader ended: %s", exc)
+        await msg_queue.put(_STREAM_END)
+
+    async def _drain_stale():
+        """Consume any messages that accumulated while waiting for input.
+
+        The CLI may send unsolicited messages (reminders, notifications)
+        while the user is idle. These sit in the queue and would otherwise
+        be mistaken for the response to the next query. We drain them
+        here — printing any text and discarding their ResultMessages —
+        so that _receive_and_print only sees the real response.
+        """
+        if msg_queue.empty():
+            return
+        stale_texts: list[str] = []
+        while True:
+            try:
+                msg = await asyncio.wait_for(msg_queue.get(), timeout=0.2)
+            except asyncio.TimeoutError:
+                break
+            if msg is _STREAM_END:
+                await msg_queue.put(_STREAM_END)  # re-queue for others
+                break
+            if isinstance(msg, AssistantMessage):
+                for block in msg.content:
                     if isinstance(block, TextBlock):
                         print(block.text, flush=True)
-            elif isinstance(message, ResultMessage):
-                result_msg = message
+                        stale_texts.append(block.text)
+            # ResultMessage, SystemMessage, etc. are silently consumed.
+        if stale_texts:
+            _record_agent("\n".join(stale_texts))
+
+    async def _receive_and_print() -> ResultMessage | None:
+        """Read from the queue until a ResultMessage signals end of turn."""
+        result_msg = None
+        turn_texts: list[str] = []
+        while True:
+            msg = await msg_queue.get()
+            if msg is _STREAM_END:
+                break
+            if isinstance(msg, AssistantMessage):
+                for block in msg.content:
+                    if isinstance(block, TextBlock):
+                        print(block.text, flush=True)
+                        turn_texts.append(block.text)
+            elif isinstance(msg, ResultMessage):
+                result_msg = msg
+                break
+        if turn_texts:
+            _record_agent("\n".join(turn_texts))
+            _try_detect_output_dir()
         return result_msg
 
+    reader_task = None
     try:
         # Connect, then send initial prompt via query().
         # Note: connect() with a string prompt does NOT actually send it
         # when using stream-json input mode. We must use query() instead.
         await client.connect()
+        reader_task = asyncio.create_task(_message_reader())
+
+        _record_user(initial_prompt)
         await client.query(initial_prompt)
 
         # Receive response to initial prompt
@@ -185,14 +285,30 @@ async def _run_setup_agent_async(
             except (EOFError, KeyboardInterrupt):
                 break
 
+            # Drain any messages the CLI sent while the user was typing
+            # (reminders, notifications, etc.) so they don't get confused
+            # with the response to the user's new input.
+            await _drain_stale()
+
+            _record_user(user_input)
             await client.query(user_input)
             last_result_message = await _receive_and_print()
 
     finally:
+        if reader_task:
+            reader_task.cancel()
+            try:
+                await reader_task
+            except asyncio.CancelledError:
+                pass
         await client.disconnect()
 
     if last_result_message:
         result_text = last_result_message.result
         _log_usage(last_result_message)
+
+    # Final flush — if output_dir was discovered late, ensure transcript is written
+    _try_detect_output_dir()
+    _flush_transcript()
 
     return result_text

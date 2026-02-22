@@ -162,15 +162,13 @@ database:
 
 query:
   min_cell_size: 10                # Suppress counts below this
-  max_query_rows: 500              # Max rows per query
-  max_output_fraction: 0.5
   mcp_host: 127.0.0.1
   mcp_port: 8000
 
 chatbot:
   llm:
-    provider: anthropic            # "anthropic" or "vertex"
-    model: claude-sonnet-4-20250514
+    provider: vertex               # "anthropic" or "vertex"
+    model: claude-opus-4-6
   mcp_url: http://127.0.0.1:8000/mcp
   mcp_token: ""
   max_agent_turns: 75
@@ -184,6 +182,9 @@ field_mappings:
       transform: <optional>        # lowercase, uppercase, strip, date_to_yyyy_mm_dd, etc.
       value_map:                   # Optional value remapping
         OLD_VALUE: new_value
+
+patient_id_columns:                # Per-file patient ID column overrides (optional)
+  <filename>: <column_name>        # e.g. diagnoses.csv: PATIENT_ID
 ```
 
 ## Available Ontologies
@@ -244,8 +245,21 @@ information listed below. Never start with data exploration.
 - Do NOT show raw patient data -- only metadata.
 
 ### Stage 3: Cohort Definition
-- Identify the patient ID column across the data files.
+- Identify the patient ID column **in each source file**. Different files
+  may use different column names for the same patient identifier (e.g.,
+  `MRN` in one file, `PATIENT_ID` in another, `record_id` in a third).
 - Identify which file contains the patient roster (patient_file).
+- Set `cohort.patient_id_column` to the column name used in the
+  **patient file**.
+- **If any other file uses a DIFFERENT column name** for the patient
+  identifier, record it in the top-level `patient_id_columns` section:
+  ```yaml
+  patient_id_columns:
+    diagnoses.csv: PATIENT_ID
+    demographics.csv: MRN
+  ```
+  The pipeline uses this mapping to automatically rename per-file patient
+  ID columns to the standard name before processing.
 - **Search ALL source files** in input_paths for demographic columns
   (sex, race, ethnicity, birth date, death date, death indicator).
   Demographics may be in the patient roster file itself, or in a
@@ -262,7 +276,7 @@ information listed below. Never start with data exploration.
   data source with demographics.
 - Look for diagnosis code columns (ICD codes, etc.) and which file
   they're in (diagnosis_file).
-- Ask the user about the patient ID column name.
+- Ask the user about the patient ID column name(s).
 - If diagnosis codes are found, ask about inclusion/exclusion criteria
   (e.g., which ICD codes or site codes to filter on).
 - Write settings to the `cohort` section of the YAML (patient_file,
@@ -270,7 +284,8 @@ information listed below. Never start with data exploration.
   columns, diagnosis filtering). Downstream extraction and
   harmonization stages will automatically filter to only cohort
   patients.
-- Also set `patient_id_column` in the `extraction` section to match.
+- Also set `patient_id_column` in the `extraction` section to match
+  (using the notes file's column name for the patient ID).
 
 ### Stage 4: Notes Configuration
 - Ask the user which files/directories contain clinical notes (free-text
@@ -310,9 +325,6 @@ information listed below. Never start with data exploration.
     and the LLM settings (provider: openai, model name) to YAML. Do NOT
     set `base_url` when using auto-managed servers — the pipeline fills
     it in automatically.
-  - Ask if they need extra vLLM flags (e.g. `max_model_len`,
-    `gpu_memory_utilization`, `dtype`). Write any to
-    `extraction.vllm_servers.extra_args`.
   - If connecting to a pre-existing server: ask for the base_url and
     write it to `extraction.llm.base_url`. Leave `vllm_servers.gpus`
     empty.
@@ -324,6 +336,24 @@ information listed below. Never start with data exploration.
 - Ask which ontology(ies) the user wants to use for extraction.
 - Ask about cancer type if relevant (generic, lung, breast, etc.).
 - Write ontology_ids and cancer_type to the extraction section.
+- **After ontologies are chosen**, if the user selected local vLLM with
+  auto-managed servers, suggest a `max_model_len` value for
+  `extraction.vllm_servers.extra_args` and confirm it with the user.
+  The extraction prompt is assembled from these components:
+    1. System prompt + ontology schema(s): ~1,500 tokens per ontology
+    2. The document chunk: `chunk_tokens` (default 40,000)
+    3. For iterative (multi-chunk) patients, the running JSON extraction
+       from prior chunks: ~3,000 tokens per ontology
+    4. Output max_tokens: `extraction.llm.max_tokens` (default 16,384)
+  So a safe formula is:
+    `max_model_len = chunk_tokens + (4500 × num_ontologies) + max_tokens + 1000`
+  For example: 1 ontology at default settings →
+    40,000 + 4,500 + 16,384 + 1,000 ≈ 62,000;
+  3 ontologies → 40,000 + 13,500 + 16,384 + 1,000 ≈ 71,000.
+  Present the calculation and suggested value. Also suggest
+  `gpu_memory_utilization: 0.95` unless the user has other workloads
+  on the same GPUs. Write the values to
+  `extraction.vllm_servers.extra_args`.
 
 ### Stage 6: Field Mappings (Harmonization)
 - For each structured data file (non-notes CSV/parquet files), examine
@@ -354,7 +384,7 @@ information listed below. Never start with data exploration.
 ### Stage 8: Database & Query Settings
 - Confirm defaults for:
   - Database: record_id_prefix, min_non_missing
-  - Query: min_cell_size, max_query_rows, mcp_host, mcp_port
+  - Query: min_cell_size, mcp_host, mcp_port
   - Chatbot: LLM provider/model, host, port
 - Ask if the user wants to change any defaults.
 - Write the database, query, and chatbot sections to YAML.
