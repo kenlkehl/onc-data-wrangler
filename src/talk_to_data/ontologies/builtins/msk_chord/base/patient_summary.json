@@ -1,0 +1,250 @@
+{
+  "category_id": "patient_summary",
+  "category_name": "Patient Summary",
+  "description": "Patient-level clinical attributes from MSK-CHORD/cBioPortal",
+  "items": [
+    {
+      "id": "patient_id",
+      "name": "Patient Identifier",
+      "description": "Unique patient identifier (IMPACT ID)",
+      "data_type": "string",
+      "column_name": "PATIENT_ID"
+    },
+    {
+      "id": "gender",
+      "name": "Sex",
+      "description": "Gender assigned at birth",
+      "data_type": "string",
+      "column_name": "GENDER",
+      "valid_values": {
+        "Male": "Male",
+        "Female": "Female"
+      }
+    },
+    {
+      "id": "race",
+      "name": "Race",
+      "description": "Race, self-reported",
+      "data_type": "string",
+      "column_name": "RACE"
+    },
+    {
+      "id": "ethnicity",
+      "name": "Ethnicity",
+      "description": "Ethnicity, self-reported",
+      "data_type": "string",
+      "column_name": "ETHNICITY"
+    },
+    {
+      "id": "current_age",
+      "name": "Current Age",
+      "description": "Current age (limited to 89 for privacy)",
+      "data_type": "integer",
+      "column_name": "CURRENT_AGE_DEID"
+    },
+    {
+      "id": "ancestry_label",
+      "name": "Ancestry Label",
+      "description": "Genomic ancestry (EUR, ASJ, AFR, EAS, SAS, NAM, ADM)",
+      "data_type": "string",
+      "column_name": "ancestry_label",
+      "valid_values": {
+        "EUR": "European (non-Ashkenazi Jewish)",
+        "ASJ": "Ashkenazi Jewish European",
+        "AFR": "African",
+        "EAS": "East Asian",
+        "SAS": "South Asian",
+        "NAM": "Native American",
+        "ADM": "Admixed/Other"
+      }
+    },
+    {
+      "id": "stage_highest_recorded",
+      "name": "Stage (Highest Recorded)",
+      "description": "Highest recorded stage in tumor registry (ICD-O)",
+      "data_type": "string",
+      "column_name": "STAGE_HIGHEST_RECORDED"
+    },
+    {
+      "id": "num_icdo_dx",
+      "name": "Number of Tumor Registry Entries",
+      "description": "Number of tumor registry entries for patient",
+      "data_type": "integer",
+      "column_name": "NUM_ICDO_DX"
+    },
+    {
+      "id": "smoking_history",
+      "name": "Smoking History (NLP)",
+      "description": "Inferred smoking history: Current/Former, Never, Unknown",
+      "data_type": "string",
+      "column_name": "smoking_predictions_3_classes",
+      "nlp_derived": true,
+      "valid_values": {
+        "Current/Former": "Current or former smoker",
+        "Never": "Never smoker",
+        "Unknown": "Smoking status unknown"
+      }
+    },
+    {
+      "id": "ecog_kps_first",
+      "name": "ECOG, 1st Reported",
+      "description": "First recorded KPS or ECOG score (0-4, with 4 being poorest)",
+      "data_type": "integer",
+      "column_name": "ECOG_KPS"
+    },
+    {
+      "id": "bmi_first",
+      "name": "First BMI Measurement",
+      "description": "First recorded Body Mass Index (BMI) value",
+      "data_type": "number",
+      "column_name": "bmi_first_result"
+    },
+    {
+      "id": "prior_med_to_msk",
+      "name": "Prior Treatment to MSK (NLP)",
+      "description": "Binary indication if patient received anti-cancer medication prior to MSK",
+      "data_type": "boolean",
+      "column_name": "PRIOR_MED_TO_MSK",
+      "nlp_derived": true
+    },
+    {
+      "id": "history_of_pdl1",
+      "name": "History of Positive PD-L1 (NLP)",
+      "description": "History if patient ever had PD-L1 positive specimen",
+      "data_type": "boolean",
+      "column_name": "HISTORY_OF_PDL1",
+      "nlp_derived": true
+    },
+    {
+      "id": "history_of_dmmr",
+      "name": "MMR Deficiency (NLP)",
+      "description": "Indication if patient has history of MMR deficiency",
+      "data_type": "boolean",
+      "column_name": "HISTORY_OF_D_MMR",
+      "nlp_derived": true
+    },
+    {
+      "id": "gleason_first_reported",
+      "name": "Gleason Score, 1st Reported (NLP)",
+      "description": "First reported Gleason score from pathology reports",
+      "data_type": "string",
+      "column_name": "GLEASON_FIRST_REPORTED",
+      "nlp_derived": true
+    },
+    {
+      "id": "gleason_highest_reported",
+      "name": "Gleason Score, Highest Reported (NLP)",
+      "description": "Highest reported Gleason score from pathology reports",
+      "data_type": "string",
+      "column_name": "GLEASON_HIGHEST_REPORTED",
+      "nlp_derived": true
+    },
+    {
+      "id": "yost_index",
+      "name": "Yost Index (Socioeconomic Status)",
+      "description": "Socioeconomic status index (1=highest SES, 100=lowest SES)",
+      "data_type": "integer",
+      "column_name": "yost_index_imputed_median"
+    },
+    {
+      "id": "os_months",
+      "name": "Overall Survival (Months)",
+      "description": "Overall survival from date of first sequenced sample",
+      "data_type": "number",
+      "column_name": "OS_MONTHS"
+    },
+    {
+      "id": "os_status",
+      "name": "Overall Survival Status",
+      "description": "Patient alive or deceased",
+      "data_type": "string",
+      "column_name": "OS_STATUS",
+      "valid_values": {
+        "0:LIVING": "Living",
+        "1:DECEASED": "Deceased"
+      }
+    }
+  ],
+  "tumor_site_items": [
+    {
+      "id": "tumor_site_adrenal_glands",
+      "name": "Tumor Site: Adrenal Glands (NLP)",
+      "description": "History of adrenal gland tumor site from radiology",
+      "data_type": "boolean",
+      "column_name": "adrenal_glands",
+      "nlp_derived": true
+    },
+    {
+      "id": "tumor_site_bone",
+      "name": "Tumor Site: Bone (NLP)",
+      "description": "History of bone tumor site from radiology",
+      "data_type": "boolean",
+      "column_name": "Bone",
+      "nlp_derived": true
+    },
+    {
+      "id": "tumor_site_cns_brain",
+      "name": "Tumor Site: CNS/Brain (NLP)",
+      "description": "History of CNS/Brain tumor site from radiology",
+      "data_type": "boolean",
+      "column_name": "CNS_Brain",
+      "nlp_derived": true
+    },
+    {
+      "id": "tumor_site_intra_abdominal",
+      "name": "Tumor Site: Intra-Abdominal (NLP)",
+      "description": "History of intra-abdominal tumor site from radiology",
+      "data_type": "boolean",
+      "column_name": "Intra_Abdominal",
+      "nlp_derived": true
+    },
+    {
+      "id": "tumor_site_liver",
+      "name": "Tumor Site: Liver (NLP)",
+      "description": "History of liver tumor site from radiology",
+      "data_type": "boolean",
+      "column_name": "Liver",
+      "nlp_derived": true
+    },
+    {
+      "id": "tumor_site_lung",
+      "name": "Tumor Site: Lung (NLP)",
+      "description": "History of lung tumor site from radiology",
+      "data_type": "boolean",
+      "column_name": "Lung",
+      "nlp_derived": true
+    },
+    {
+      "id": "tumor_site_lymph_nodes",
+      "name": "Tumor Site: Lymph Node (NLP)",
+      "description": "History of lymph node tumor site from radiology",
+      "data_type": "boolean",
+      "column_name": "lymph_nodes",
+      "nlp_derived": true
+    },
+    {
+      "id": "tumor_site_pleura",
+      "name": "Tumor Site: Pleura (NLP)",
+      "description": "History of pleura tumor site from radiology",
+      "data_type": "boolean",
+      "column_name": "Pleura",
+      "nlp_derived": true
+    },
+    {
+      "id": "tumor_site_reproductive_organs",
+      "name": "Tumor Site: Reproductive Organs (NLP)",
+      "description": "History of reproductive organs tumor site from radiology",
+      "data_type": "boolean",
+      "column_name": "Reproductive_Organs",
+      "nlp_derived": true
+    },
+    {
+      "id": "tumor_site_other",
+      "name": "Tumor Site: Other (NLP)",
+      "description": "History of other tumor site from radiology",
+      "data_type": "boolean",
+      "column_name": "Other",
+      "nlp_derived": true
+    }
+  ]
+}

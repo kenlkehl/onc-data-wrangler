@@ -1,0 +1,177 @@
+{
+  "schema_id": "breast",
+  "schema_name": "Breast Cancer",
+  "cohort": "Breast",
+  "description": "Breast cancer-specific variables from GENIE BPC",
+  "items": [
+    {
+      "id": "er_status",
+      "name": "Estrogen Receptor Status",
+      "description": "ER status from tumor pathology",
+      "data_type": "string",
+      "json_field": "er_status",
+      "valid_values": {
+        "Positive": "ER positive (>=1%)",
+        "Negative": "ER negative (<1%)",
+        "Unknown": "Not tested or unknown"
+      }
+    },
+    {
+      "id": "er_percent",
+      "name": "ER Percent",
+      "description": "Percentage of ER positive cells",
+      "data_type": "number",
+      "json_field": "er_percent"
+    },
+    {
+      "id": "pr_status",
+      "name": "Progesterone Receptor Status",
+      "description": "PR status from tumor pathology",
+      "data_type": "string",
+      "json_field": "pr_status",
+      "valid_values": {
+        "Positive": "PR positive (>=1%)",
+        "Negative": "PR negative (<1%)",
+        "Unknown": "Not tested or unknown"
+      }
+    },
+    {
+      "id": "pr_percent",
+      "name": "PR Percent",
+      "description": "Percentage of PR positive cells",
+      "data_type": "number",
+      "json_field": "pr_percent"
+    },
+    {
+      "id": "her2_status",
+      "name": "HER2 Status",
+      "description": "HER2 status from IHC and/or FISH",
+      "data_type": "string",
+      "json_field": "her2_status",
+      "valid_values": {
+        "Positive": "HER2 positive (IHC 3+ or FISH amplified)",
+        "Negative": "HER2 negative (IHC 0-1+ or FISH not amplified)",
+        "Equivocal": "HER2 equivocal (IHC 2+, FISH pending)",
+        "Low": "HER2-low (IHC 1+ or IHC 2+/FISH negative)",
+        "Unknown": "Not tested or unknown"
+      }
+    },
+    {
+      "id": "her2_ihc",
+      "name": "HER2 IHC Score",
+      "description": "HER2 immunohistochemistry score",
+      "data_type": "string",
+      "json_field": "her2_ihc",
+      "valid_values": {
+        "0": "IHC 0 (negative)",
+        "1+": "IHC 1+ (negative, HER2-low)",
+        "2+": "IHC 2+ (equivocal, requires FISH)",
+        "3+": "IHC 3+ (positive)"
+      }
+    },
+    {
+      "id": "her2_fish",
+      "name": "HER2 FISH Result",
+      "description": "HER2 fluorescence in situ hybridization result",
+      "data_type": "string",
+      "json_field": "her2_fish",
+      "valid_values": {
+        "Amplified": "HER2 gene amplified",
+        "Not amplified": "HER2 gene not amplified",
+        "Equivocal": "Equivocal result",
+        "Not done": "FISH not performed"
+      }
+    },
+    {
+      "id": "receptor_subtype",
+      "name": "Receptor Subtype",
+      "description": "Combined receptor subtype classification",
+      "data_type": "string",
+      "json_field": "receptor_subtype",
+      "valid_values": {
+        "HR+/HER2-": "Hormone receptor positive, HER2 negative",
+        "HR+/HER2+": "Hormone receptor positive, HER2 positive",
+        "HR-/HER2+": "Hormone receptor negative, HER2 positive",
+        "Triple-negative": "ER-, PR-, HER2- (TNBC)"
+      }
+    },
+    {
+      "id": "ki67",
+      "name": "Ki-67 Index",
+      "description": "Ki-67 proliferation index percentage",
+      "data_type": "number",
+      "json_field": "ki67"
+    },
+    {
+      "id": "grade",
+      "name": "Tumor Grade",
+      "description": "Histologic grade (Nottingham/Bloom-Richardson)",
+      "data_type": "string",
+      "json_field": "grade",
+      "valid_values": {
+        "1": "Grade 1 (well differentiated)",
+        "2": "Grade 2 (moderately differentiated)",
+        "3": "Grade 3 (poorly differentiated)"
+      }
+    },
+    {
+      "id": "brca1_status",
+      "name": "BRCA1 Mutation Status",
+      "description": "BRCA1 germline or somatic mutation status",
+      "data_type": "string",
+      "json_field": "brca1_status",
+      "valid_values": {
+        "Pathogenic mutation": "Pathogenic/likely pathogenic variant",
+        "VUS": "Variant of uncertain significance",
+        "Negative": "No pathogenic variant detected",
+        "Not tested": "Not tested"
+      }
+    },
+    {
+      "id": "brca2_status",
+      "name": "BRCA2 Mutation Status",
+      "description": "BRCA2 germline or somatic mutation status",
+      "data_type": "string",
+      "json_field": "brca2_status",
+      "valid_values": {
+        "Pathogenic mutation": "Pathogenic/likely pathogenic variant",
+        "VUS": "Variant of uncertain significance",
+        "Negative": "No pathogenic variant detected",
+        "Not tested": "Not tested"
+      }
+    },
+    {
+      "id": "pik3ca_status",
+      "name": "PIK3CA Mutation Status",
+      "description": "PIK3CA mutation status",
+      "data_type": "string",
+      "json_field": "pik3ca_status"
+    },
+    {
+      "id": "esr1_status",
+      "name": "ESR1 Mutation Status",
+      "description": "ESR1 mutation status (acquired resistance marker)",
+      "data_type": "string",
+      "json_field": "esr1_status"
+    },
+    {
+      "id": "oncotype_dx",
+      "name": "Oncotype DX Recurrence Score",
+      "description": "21-gene recurrence score",
+      "data_type": "number",
+      "json_field": "oncotype_dx"
+    },
+    {
+      "id": "mammaprint",
+      "name": "MammaPrint Result",
+      "description": "70-gene signature result",
+      "data_type": "string",
+      "json_field": "mammaprint",
+      "valid_values": {
+        "High risk": "High genomic risk",
+        "Low risk": "Low genomic risk",
+        "Not done": "Test not performed"
+      }
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "category_id": "labs",
+  "category_name": "Cancer Antigen Labs",
+  "description": "Timeline of cancer antigen laboratory values",
+  "items": [
+    {
+      "id": "lab_date",
+      "name": "Lab Date",
+      "description": "Date of laboratory measurement",
+      "data_type": "date",
+      "column_name": "START_DATE"
+    },
+    {
+      "id": "lab_type",
+      "name": "Lab Type",
+      "description": "Type of cancer antigen lab",
+      "data_type": "string",
+      "column_name": "LAB_TYPE",
+      "valid_values": {
+        "CEA": "Carcinoembryonic Antigen",
+        "CA_125": "Cancer Antigen 125",
+        "CA_15-3": "Cancer Antigen 15-3",
+        "CA_19-9": "Cancer Antigen 19-9",
+        "PSA": "Prostate Specific Antigen",
+        "TSH": "Thyroid Stimulating Hormone"
+      }
+    },
+    {
+      "id": "lab_value",
+      "name": "Lab Value",
+      "description": "Numeric result value",
+      "data_type": "number",
+      "column_name": "VALUE"
+    },
+    {
+      "id": "lab_unit",
+      "name": "Unit",
+      "description": "Unit of measurement",
+      "data_type": "string",
+      "column_name": "UNIT"
+    },
+    {
+      "id": "lab_normal_range",
+      "name": "Normal Range",
+      "description": "Reference range for the lab",
+      "data_type": "string",
+      "column_name": "NORMAL_RANGE"
+    }
+  ]
+}

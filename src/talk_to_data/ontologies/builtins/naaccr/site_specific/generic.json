@@ -1,0 +1,121 @@
+{
+  "schema_id": "generic",
+  "schema_name": "Other/Unspecified Cancer",
+  "applicable_years": "2018+",
+  "description": "Generic data items for cancers without site-specific schemas. Captures common biomarkers and treatment-related factors.",
+  "items": [
+    {
+      "naaccr_item": "3814",
+      "name": "Grade Clinical",
+      "json_field": "naaccr_3814_grade_clinical",
+      "human_readable_field": "grade_clinical",
+      "description": "Clinical tumor grade/differentiation",
+      "valid_codes": "1=G1 Well differentiated, 2=G2 Moderately differentiated, 3=G3 Poorly differentiated, 4=G4 Undifferentiated, 9=Unknown",
+      "extraction_hints": ["well differentiated", "moderately differentiated", "poorly differentiated", "undifferentiated", "grade"]
+    },
+    {
+      "naaccr_item": "3815",
+      "name": "Grade Pathological",
+      "json_field": "naaccr_3815_grade_pathological",
+      "human_readable_field": "grade_pathological",
+      "description": "Pathological tumor grade from resection",
+      "valid_codes": "Same as clinical grade",
+      "extraction_hints": ["pathologic grade", "final grade"]
+    },
+    {
+      "naaccr_item": "3820",
+      "name": "LVI (Lymphovascular Invasion)",
+      "json_field": "naaccr_3820_lvi",
+      "human_readable_field": "lymphovascular_invasion",
+      "description": "Presence of lymphovascular invasion",
+      "valid_codes": "0=Not identified, 1=Present, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["lymphovascular invasion", "LVI", "vascular invasion", "angiolymphatic"]
+    },
+    {
+      "naaccr_item": "3821",
+      "name": "Perineural Invasion",
+      "json_field": "naaccr_3821_perineural_invasion",
+      "human_readable_field": "perineural_invasion",
+      "description": "Presence of perineural invasion",
+      "valid_codes": "0=Not identified, 1=Present, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["perineural invasion", "PNI", "neurotropism"]
+    },
+    {
+      "naaccr_item": "3935",
+      "name": "Tumor Size Summary",
+      "json_field": "naaccr_3935_tumor_size",
+      "human_readable_field": "tumor_size_mm",
+      "description": "Greatest dimension of primary tumor in mm",
+      "valid_codes": "Numeric (001-989 mm), 990=990+ mm, 998=Not applicable, 999=Unknown",
+      "extraction_hints": ["tumor size", "greatest dimension", "cm", "mm", "measuring"]
+    }
+  ],
+  "common_biomarkers_to_extract": [
+    {
+      "name": "PD-L1 Expression",
+      "json_field": "pdl1_status",
+      "description": "PD-L1 expression status (if tested)",
+      "extraction_hints": ["PD-L1", "PDL1", "TPS", "CPS"]
+    },
+    {
+      "name": "MSI/MMR Status",
+      "json_field": "msi_mmr_status",
+      "description": "Microsatellite instability or mismatch repair status",
+      "extraction_hints": ["MSI", "MSI-H", "dMMR", "pMMR", "microsatellite"]
+    },
+    {
+      "name": "Tumor Mutation Burden",
+      "json_field": "tmb",
+      "description": "Tumor mutation burden (mutations/Mb)",
+      "extraction_hints": ["TMB", "tumor mutation burden", "mutations per megabase"]
+    },
+    {
+      "name": "HER2 Status",
+      "json_field": "her2_status",
+      "description": "HER2/ERBB2 status (if applicable)",
+      "extraction_hints": ["HER2", "ERBB2", "HER2 positive", "HER2 negative"]
+    },
+    {
+      "name": "NTRK Fusion",
+      "json_field": "ntrk_status",
+      "description": "NTRK1/2/3 fusion status (tumor-agnostic biomarker)",
+      "extraction_hints": ["NTRK", "NTRK fusion", "TRK"]
+    },
+    {
+      "name": "RET Fusion/Mutation",
+      "json_field": "ret_status",
+      "description": "RET alteration status (tumor-agnostic for RET fusions)",
+      "extraction_hints": ["RET", "RET fusion", "RET mutation"]
+    },
+    {
+      "name": "BRAF Status",
+      "json_field": "braf_status",
+      "description": "BRAF mutation status",
+      "extraction_hints": ["BRAF", "V600E", "V600K"]
+    }
+  ],
+  "performance_status": {
+    "name": "ECOG Performance Status",
+    "json_field": "ecog_performance_status",
+    "description": "ECOG/WHO performance status at diagnosis",
+    "valid_codes": "0=Fully active, 1=Restricted in strenuous activity, 2=Ambulatory >50% waking hours, 3=Limited self-care, 4=Completely disabled, 9=Unknown",
+    "extraction_hints": ["ECOG", "performance status", "PS", "KPS", "Karnofsky"]
+  },
+  "example_output": {
+    "schema_id": "generic",
+    "site_specific_factors": {
+      "naaccr_3814_grade_clinical": "2",
+      "grade_clinical": "Moderately differentiated",
+      "naaccr_3820_lvi": "0",
+      "lymphovascular_invasion": "Not identified",
+      "naaccr_3821_perineural_invasion": "0",
+      "perineural_invasion": "Not identified",
+      "naaccr_3935_tumor_size": "45",
+      "tumor_size_mm": 45,
+      "pdl1_status": null,
+      "msi_mmr_status": null,
+      "tmb": null,
+      "ecog_performance_status": 1
+    }
+  }
+}

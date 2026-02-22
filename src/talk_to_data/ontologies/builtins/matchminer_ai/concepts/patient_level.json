@@ -1,0 +1,44 @@
+{
+  "category": "patient_level",
+  "description": "Patient-level demographic and clinical characteristics",
+  "items": [
+    {
+      "id": "age",
+      "name": "Patient Age",
+      "description": "Current age of patient in years",
+      "data_type": "integer",
+      "json_field": "age",
+      "extraction_hints": ["age", "years old", "y/o", "yo", "year old"]
+    },
+    {
+      "id": "sex",
+      "name": "Sex",
+      "description": "Biological sex of patient",
+      "data_type": "string",
+      "json_field": "sex",
+      "valid_values": {
+        "Male": "Male",
+        "Female": "Female",
+        "Other": "Other or intersex",
+        "Unknown": "Unknown"
+      },
+      "extraction_hints": ["male", "female", "man", "woman", "M", "F"]
+    },
+    {
+      "id": "ecog_performance_status",
+      "name": "ECOG Performance Status",
+      "description": "Current functional status (0-5)",
+      "data_type": "integer",
+      "json_field": "ecog_performance_status",
+      "valid_values": {
+        "0": "Fully active",
+        "1": "Restricted but ambulatory",
+        "2": "Ambulatory but unable to work",
+        "3": "Limited self-care",
+        "4": "Completely disabled",
+        "5": "Dead"
+      },
+      "extraction_hints": ["ECOG", "performance status", "PS", "KPS", "Karnofsky"]
+    }
+  ]
+}

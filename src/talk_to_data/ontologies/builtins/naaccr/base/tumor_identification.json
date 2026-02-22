@@ -1,0 +1,123 @@
+{
+  "category": "tumor_identification",
+  "description": "Tumor identification and classification data items",
+  "naaccr_version": "25",
+  "items": [
+    {
+      "naaccr_item": "400",
+      "name": "Primary Site",
+      "json_field": "naaccr_400_primary_site",
+      "human_readable_field": "primary_site_code",
+      "description": "ICD-O-3 topography code for the site of origin",
+      "valid_codes": "C00.0-C80.9 (without decimal for NAACCR format)",
+      "data_type": "string",
+      "length": 4
+    },
+    {
+      "naaccr_item": "410",
+      "name": "Laterality",
+      "json_field": "naaccr_410_laterality",
+      "human_readable_field": "laterality",
+      "description": "Side of paired organ where primary tumor originated",
+      "valid_codes": "0=Not a paired site, 1=Right origin of primary, 2=Left origin of primary, 3=Only one side involved but right or left origin unknown, 4=Bilateral involvement at time of diagnosis, 5=Paired site midline tumor, 9=Paired site but no information laterality",
+      "data_type": "string",
+      "length": 1
+    },
+    {
+      "naaccr_item": "420",
+      "name": "Histologic Type ICD-O-3",
+      "json_field": "naaccr_420_histologic_type",
+      "human_readable_field": "histology_code",
+      "description": "ICD-O-3 morphology code (first 4 digits)",
+      "valid_codes": "8000-9989",
+      "data_type": "string",
+      "length": 4
+    },
+    {
+      "naaccr_item": "430",
+      "name": "Behavior Code ICD-O-3",
+      "json_field": "naaccr_430_behavior",
+      "human_readable_field": "behavior",
+      "description": "ICD-O-3 behavior code (5th digit of morphology)",
+      "valid_codes": "0=Benign, 1=Uncertain whether benign or malignant, 2=Carcinoma in situ, 3=Malignant primary site, 6=Malignant metastatic site, 9=Malignant uncertain primary or metastatic",
+      "data_type": "string",
+      "length": 1
+    },
+    {
+      "naaccr_item": "440",
+      "name": "Grade",
+      "json_field": "naaccr_440_grade",
+      "human_readable_field": "grade",
+      "description": "Grade or differentiation of tumor",
+      "valid_codes": "1=Grade I, well differentiated, 2=Grade II, moderately differentiated, 3=Grade III, poorly differentiated, 4=Grade IV, undifferentiated/anaplastic, 5=T-cell, 6=B-cell, 7=Null cell, 8=NK cell, 9=Cell type not determined/not stated/NA, A-H=Site-specific codes",
+      "data_type": "string",
+      "length": 1
+    },
+    {
+      "naaccr_item": "390",
+      "name": "Date of Diagnosis",
+      "json_field": "naaccr_390_date_of_diagnosis",
+      "human_readable_field": "date_of_diagnosis",
+      "description": "Date of initial diagnosis",
+      "valid_codes": "YYYYMMDD format",
+      "data_type": "date",
+      "length": 8
+    },
+    {
+      "naaccr_item": "490",
+      "name": "Diagnostic Confirmation",
+      "json_field": "naaccr_490_diagnostic_confirmation",
+      "human_readable_field": "diagnostic_confirmation",
+      "description": "Best method of diagnostic confirmation",
+      "valid_codes": "1=Positive histology, 2=Positive cytology, 4=Positive microscopic confirmation method NOS, 5=Positive lab test/marker study, 6=Direct visualization without microscopic confirmation, 7=Radiography/other imaging without microscopic confirmation, 8=Clinical diagnosis only, 9=Unknown",
+      "data_type": "string",
+      "length": 1
+    },
+    {
+      "naaccr_item": "756",
+      "name": "Schema ID",
+      "json_field": "naaccr_756_schema_id",
+      "human_readable_field": "schema_id",
+      "description": "NAACCR schema ID for staging and SSDI assignment",
+      "valid_codes": "Schema ID assigned by software",
+      "data_type": "string",
+      "length": 5
+    }
+  ],
+  "human_readable_mappings": {
+    "laterality": {
+      "0": "Not a paired site",
+      "1": "Right",
+      "2": "Left",
+      "3": "One side, laterality unknown",
+      "4": "Bilateral",
+      "5": "Midline",
+      "9": "Unknown"
+    },
+    "behavior": {
+      "0": "Benign",
+      "1": "Uncertain",
+      "2": "In situ",
+      "3": "Malignant, primary",
+      "6": "Malignant, metastatic",
+      "9": "Unknown"
+    },
+    "grade": {
+      "1": "Well differentiated (Grade I)",
+      "2": "Moderately differentiated (Grade II)",
+      "3": "Poorly differentiated (Grade III)",
+      "4": "Undifferentiated (Grade IV)",
+      "9": "Unknown"
+    },
+    "diagnostic_confirmation": {
+      "1": "Positive histology",
+      "2": "Positive cytology",
+      "4": "Positive microscopic NOS",
+      "5": "Positive lab/marker",
+      "6": "Direct visualization",
+      "7": "Radiography/imaging",
+      "8": "Clinical diagnosis only",
+      "9": "Unknown"
+    }
+  }
+}

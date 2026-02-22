@@ -1,0 +1,121 @@
+{
+  "category": "regimen",
+  "description": "Cancer-directed regimen dataset variables from PRISSMM/GENIE BPC",
+  "per_diagnosis": true,
+  "repeatable": true,
+  "items": [
+    {
+      "id": "ca_seq",
+      "name": "Cancer Sequence",
+      "description": "Cancer sequence number this regimen is associated with",
+      "data_type": "integer",
+      "json_field": "ca_seq"
+    },
+    {
+      "id": "regimen_number",
+      "name": "Regimen Number",
+      "description": "Sequential regimen number for this cancer (1=first regimen)",
+      "data_type": "integer",
+      "json_field": "regimen_number"
+    },
+    {
+      "id": "regimen_drugs",
+      "name": "Regimen Drug Names",
+      "description": "Names of drugs in the regimen",
+      "data_type": "string",
+      "json_field": "regimen_drugs"
+    },
+    {
+      "id": "drugs_num",
+      "name": "Number of Drugs",
+      "description": "Number of drugs in the regimen",
+      "data_type": "integer",
+      "json_field": "drugs_num"
+    },
+    {
+      "id": "dx_reg_start_days",
+      "name": "Days from Diagnosis to Regimen Start",
+      "description": "Days from cancer diagnosis to start of this regimen",
+      "data_type": "integer",
+      "json_field": "dx_reg_start_days"
+    },
+    {
+      "id": "dx_reg_end_days",
+      "name": "Days from Diagnosis to Regimen End",
+      "description": "Days from cancer diagnosis to end of this regimen",
+      "data_type": "integer",
+      "json_field": "dx_reg_end_days"
+    },
+    {
+      "id": "regimen_drugs_derived",
+      "name": "Regimen Drugs (Derived)",
+      "description": "Standardized drug names derived from source data",
+      "data_type": "array",
+      "json_field": "regimen_drugs_derived"
+    },
+    {
+      "id": "regimen_setting",
+      "name": "Treatment Setting",
+      "description": "Setting/intent of treatment",
+      "data_type": "string",
+      "json_field": "regimen_setting",
+      "valid_values": {
+        "Neoadjuvant": "Before definitive surgery",
+        "Adjuvant": "After surgery to prevent recurrence",
+        "First-line metastatic": "First treatment for metastatic disease",
+        "Subsequent line": "Second-line or later for metastatic disease",
+        "Maintenance": "Maintenance therapy after initial response"
+      }
+    },
+    {
+      "id": "regimen_ongoing",
+      "name": "Regimen Ongoing",
+      "description": "Whether the regimen is still ongoing",
+      "data_type": "string",
+      "json_field": "regimen_ongoing",
+      "valid_values": {
+        "Yes": "Still receiving this regimen",
+        "No": "Regimen has ended"
+      }
+    },
+    {
+      "id": "regimen_disc_reason",
+      "name": "Reason for Discontinuation",
+      "description": "Reason the regimen was discontinued",
+      "data_type": "string",
+      "json_field": "regimen_disc_reason",
+      "valid_values": {
+        "Completed planned course": "Finished planned treatment",
+        "Progression": "Disease progression",
+        "Toxicity": "Adverse events/toxicity",
+        "Patient preference": "Patient decision",
+        "Death": "Patient died",
+        "Other": "Other reason"
+      }
+    },
+    {
+      "id": "includes_immunotherapy",
+      "name": "Includes Immunotherapy",
+      "description": "Whether regimen includes immune checkpoint inhibitor",
+      "data_type": "integer",
+      "json_field": "includes_immunotherapy",
+      "valid_values": {"0": "No", "1": "Yes"}
+    },
+    {
+      "id": "includes_targeted",
+      "name": "Includes Targeted Therapy",
+      "description": "Whether regimen includes targeted/molecular therapy",
+      "data_type": "integer",
+      "json_field": "includes_targeted",
+      "valid_values": {"0": "No", "1": "Yes"}
+    },
+    {
+      "id": "includes_chemo",
+      "name": "Includes Chemotherapy",
+      "description": "Whether regimen includes cytotoxic chemotherapy",
+      "data_type": "integer",
+      "json_field": "includes_chemo",
+      "valid_values": {"0": "No", "1": "Yes"}
+    }
+  ]
+}

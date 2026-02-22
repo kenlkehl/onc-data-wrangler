@@ -1,0 +1,143 @@
+{
+  "table_name": "episode",
+  "description": "OMOP Oncology Extension - aggregates clinical events into disease phases and treatment courses",
+  "items": [
+    {
+      "id": "episode_id",
+      "name": "Episode ID",
+      "description": "Unique identifier for this episode",
+      "data_type": "integer",
+      "json_field": "episode_id"
+    },
+    {
+      "id": "person_id",
+      "name": "Person ID",
+      "description": "Patient identifier",
+      "data_type": "integer",
+      "json_field": "person_id"
+    },
+    {
+      "id": "episode_concept_id",
+      "name": "Episode Concept ID",
+      "description": "Concept ID defining the episode type",
+      "data_type": "integer",
+      "json_field": "episode_concept_id"
+    },
+    {
+      "id": "episode_concept_name",
+      "name": "Episode Concept Name",
+      "description": "Human-readable episode type",
+      "data_type": "string",
+      "json_field": "episode_concept_name"
+    },
+    {
+      "id": "episode_start_date",
+      "name": "Episode Start Date",
+      "description": "Date the episode began",
+      "data_type": "date",
+      "json_field": "episode_start_date"
+    },
+    {
+      "id": "episode_end_date",
+      "name": "Episode End Date",
+      "description": "Date the episode ended (if applicable)",
+      "data_type": "date",
+      "json_field": "episode_end_date"
+    },
+    {
+      "id": "episode_object_concept_id",
+      "name": "Episode Object Concept ID",
+      "description": "What the episode is about (e.g., specific cancer, regimen)",
+      "data_type": "integer",
+      "json_field": "episode_object_concept_id"
+    },
+    {
+      "id": "episode_object_concept_name",
+      "name": "Episode Object Name",
+      "description": "Human-readable episode object",
+      "data_type": "string",
+      "json_field": "episode_object_concept_name"
+    },
+    {
+      "id": "episode_type_concept_id",
+      "name": "Episode Type Concept ID",
+      "description": "Source/type of episode record",
+      "data_type": "integer",
+      "json_field": "episode_type_concept_id"
+    },
+    {
+      "id": "episode_source_value",
+      "name": "Episode Source Value",
+      "description": "Source system value for the episode",
+      "data_type": "string",
+      "json_field": "episode_source_value"
+    },
+    {
+      "id": "episode_source_concept_id",
+      "name": "Episode Source Concept ID",
+      "description": "Concept ID in source vocabulary",
+      "data_type": "integer",
+      "json_field": "episode_source_concept_id"
+    }
+  ],
+  "episode_types": {
+    "disease_episodes": {
+      "description": "Episodes related to disease occurrence and progression",
+      "concepts": [
+        {
+          "concept_id": 32528,
+          "concept_name": "Disease First Occurrence",
+          "description": "Initial cancer diagnosis"
+        },
+        {
+          "concept_id": 32545,
+          "concept_name": "Disease Recurrence",
+          "description": "Cancer recurrence after treatment"
+        },
+        {
+          "concept_id": 32530,
+          "concept_name": "Disease Progression",
+          "description": "Progression on therapy"
+        },
+        {
+          "concept_id": 32546,
+          "concept_name": "Disease Remission",
+          "description": "Complete or partial remission"
+        }
+      ]
+    },
+    "treatment_episodes": {
+      "description": "Episodes related to cancer treatment",
+      "concepts": [
+        {
+          "concept_id": 32531,
+          "concept_name": "Treatment Regimen",
+          "description": "A course of cancer-directed therapy"
+        },
+        {
+          "concept_id": 32532,
+          "concept_name": "Treatment Cycle",
+          "description": "Individual cycle within a regimen"
+        }
+      ]
+    }
+  },
+  "disease_modifiers": {
+    "extent": {
+      "description": "Disease extent/stage modifiers",
+      "concepts": [
+        {"name": "Localized", "description": "Confined to primary site"},
+        {"name": "Regional", "description": "Regional lymph node involvement"},
+        {"name": "Distant", "description": "Distant metastases present"}
+      ]
+    },
+    "dynamics": {
+      "description": "Disease behavior over time",
+      "concepts": [
+        {"name": "Stable", "description": "No significant change"},
+        {"name": "Responding", "description": "Decreasing tumor burden"},
+        {"name": "Progressing", "description": "Increasing tumor burden"}
+      ]
+    }
+  }
+}

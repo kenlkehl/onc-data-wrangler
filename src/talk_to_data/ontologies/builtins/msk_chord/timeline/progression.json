@@ -1,0 +1,40 @@
+{
+  "category_id": "progression",
+  "category_name": "Cancer Progression (Radiology)",
+  "description": "NLP-derived cancer progression from radiology report impressions",
+  "nlp_derived": true,
+  "items": [
+    {
+      "id": "progression_date",
+      "name": "Progression Date",
+      "description": "Date when progression was inferred",
+      "data_type": "date",
+      "column_name": "START_DATE"
+    },
+    {
+      "id": "progression_status",
+      "name": "Progression Status",
+      "description": "Binary progression indication",
+      "data_type": "string",
+      "column_name": "PROGRESSION",
+      "valid_values": {
+        "Progressing or Mixed": "Disease progression or mixed response",
+        "Improving or Stable": "Disease improvement or stable"
+      }
+    },
+    {
+      "id": "progression_probability",
+      "name": "Progression Probability",
+      "description": "Model probability of progression (0-1)",
+      "data_type": "number",
+      "column_name": "PROGRESSION_PROBABILITY"
+    },
+    {
+      "id": "progression_source",
+      "name": "Source",
+      "description": "Type of radiology report (CT, MRI, PET)",
+      "data_type": "string",
+      "column_name": "SOURCE_SPECIFIC"
+    }
+  ]
+}

@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Talk-to-Data</title>
+<style>
+  /* ---------- Reset & base ---------- */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #f5f5f5;
+    --surface:  #ffffff;
+    --border:   #e0e0e0;
+    --primary:  #2563eb;
+    --primary-hover: #1d4ed8;
+    --text:     #1e1e1e;
+    --text-dim: #6b7280;
+    --user-bg:  #dbeafe;
+    --bot-bg:   #f0f0f0;
+    --tool-bg:  #fef9c3;
+    --error-bg: #fee2e2;
+    --code-bg:  #1e1e2e;
+    --code-fg:  #cdd6f4;
+    --radius:   8px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  header h1 { font-size: 18px; font-weight: 600; }
+  #resetBtn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 6px 14px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-dim);
+    transition: background 0.15s, color 0.15s;
+  }
+  #resetBtn:hover { background: var(--error-bg); color: #b91c1c; }
+
+  /* ---------- Chat area ---------- */
+  #chatArea {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .msg {
+    max-width: 80%;
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    line-height: 1.55;
+    font-size: 14px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+  .msg.user {
+    align-self: flex-end;
+    background: var(--user-bg);
+    border-bottom-right-radius: 2px;
+  }
+  .msg.assistant {
+    align-self: flex-start;
+    background: var(--bot-bg);
+    border-bottom-left-radius: 2px;
+  }
+  .msg.tool-info {
+    align-self: flex-start;
+    background: var(--tool-bg);
+    font-size: 12px;
+    font-family: monospace;
+    max-width: 90%;
+    white-space: pre-wrap;
+  }
+  .msg.error {
+    align-self: center;
+    background: var(--error-bg);
+    color: #991b1b;
+    font-size: 13px;
+  }
+  .msg.ask-user {
+    align-self: flex-start;
+    background: #ede9fe;
+    border-left: 3px solid #7c3aed;
+  }
+
+  /* Markdown rendering */
+  .msg h1, .msg h2, .msg h3, .msg h4 { margin: 10px 0 6px; }
+  .msg h1 { font-size: 1.3em; }
+  .msg h2 { font-size: 1.15em; }
+  .msg h3 { font-size: 1.05em; }
+  .msg p  { margin: 6px 0; }
+  .msg ul, .msg ol { margin: 6px 0 6px 20px; }
+  .msg li { margin: 2px 0; }
+  .msg pre {
+    background: var(--code-bg);
+    color: var(--code-fg);
+    padding: 10px 12px;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-size: 13px;
+    margin: 8px 0;
+  }
+  .msg code {
+    background: rgba(0,0,0,0.06);
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 0.92em;
+  }
+  .msg pre code {
+    background: none;
+    padding: 0;
+  }
+  .msg table {
+    border-collapse: collapse;
+    margin: 8px 0;
+    font-size: 13px;
+    width: 100%;
+  }
+  .msg th, .msg td {
+    border: 1px solid var(--border);
+    padding: 4px 8px;
+    text-align: left;
+  }
+  .msg th { background: rgba(0,0,0,0.04); font-weight: 600; }
+  .msg blockquote {
+    border-left: 3px solid var(--border);
+    padding-left: 12px;
+    margin: 8px 0;
+    color: var(--text-dim);
+  }
+
+  /* ---------- Input bar ---------- */
+  #inputBar {
+    display: flex;
+    gap: 8px;
+    padding: 12px 20px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  #msgInput {
+    flex: 1;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    font-size: 14px;
+    outline: none;
+    resize: none;
+    font-family: inherit;
+    min-height: 42px;
+    max-height: 150px;
+  }
+  #msgInput:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(37,99,235,0.15); }
+  #sendBtn {
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    padding: 10px 20px;
+    font-size: 14px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s;
+  }
+  #sendBtn:hover { background: var(--primary-hover); }
+  #sendBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ---------- Spinner ---------- */
+  .spinner {
+    align-self: flex-start;
+    display: flex;
+    gap: 4px;
+    padding: 12px 16px;
+  }
+  .spinner .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    animation: bounce 1.4s infinite ease-in-out both;
+  }
+  .spinner .dot:nth-child(1) { animation-delay: -0.32s; }
+  .spinner .dot:nth-child(2) { animation-delay: -0.16s; }
+  @keyframes bounce {
+    0%, 80%, 100% { transform: scale(0); }
+    40% { transform: scale(1); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Talk-to-Data</h1>
+  <button id="resetBtn">New Conversation</button>
+</header>
+
+<div id="chatArea"></div>
+
+<div id="inputBar">
+  <textarea id="msgInput" rows="1" placeholder="Ask a question about the dataset..."></textarea>
+  <button id="sendBtn">Send</button>
+</div>
+
+<script>
+// ---------------------------------------------------------------------------
+// Minimal markdown renderer (no external dependencies)
+// ---------------------------------------------------------------------------
+const md = (() => {
+  function escapeHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function renderInline(text) {
+    // Bold
+    text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    text = text.replace(/__(.+?)__/g, '<strong>$1</strong>');
+    // Italic
+    text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    text = text.replace(/_(.+?)_/g, '<em>$1</em>');
+    // Inline code
+    text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+    // Links
+    text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+    return text;
+  }
+
+  function render(src) {
+    if (!src) return '';
+    const lines = src.split('\n');
+    let html = '';
+    let inCode = false;
+    let codeLang = '';
+    let codeLines = [];
+    let inTable = false;
+    let tableRows = [];
+    let inList = false;
+    let listType = '';
+    let listItems = [];
+
+    function flushList() {
+      if (!inList) return;
+      const tag = listType === 'ol' ? 'ol' : 'ul';
+      html += `<${tag}>` + listItems.map(li => `<li>${renderInline(li)}</li>`).join('') + `</${tag}>`;
+      inList = false;
+      listItems = [];
+    }
+
+    function flushTable() {
+      if (!inTable) return;
+      if (tableRows.length === 0) { inTable = false; return; }
+      let t = '<table>';
+      tableRows.forEach((row, i) => {
+        const cells = row.split('|').map(c => c.trim()).filter(c => c !== '');
+        // Skip separator rows like |---|---|
+        if (cells.every(c => /^[-:]+$/.test(c))) return;
+        const tag = i === 0 ? 'th' : 'td';
+        t += '<tr>' + cells.map(c => `<${tag}>${renderInline(c)}</${tag}>`).join('') + '</tr>';
+      });
+      t += '</table>';
+      html += t;
+      inTable = false;
+      tableRows = [];
+    }
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      // Fenced code blocks
+      if (line.startsWith('```')) {
+        if (!inCode) {
+          flushList();
+          flushTable();
+          inCode = true;
+          codeLang = line.slice(3).trim();
+          codeLines = [];
+        } else {
+          html += `<pre><code>${escapeHtml(codeLines.join('\n'))}</code></pre>`;
+          inCode = false;
+        }
+        continue;
+      }
+      if (inCode) { codeLines.push(line); continue; }
+
+      // Table rows
+      if (line.includes('|') && line.trim().startsWith('|')) {
+        flushList();
+        if (!inTable) inTable = true;
+        tableRows.push(line);
+        continue;
+      } else {
+        flushTable();
+      }
+
+      // Headings
+      const hMatch = line.match(/^(#{1,6})\s+(.*)/);
+      if (hMatch) {
+        flushList();
+        const level = hMatch[1].length;
+        html += `<h${level}>${renderInline(hMatch[2])}</h${level}>`;
+        continue;
+      }
+
+      // Unordered list
+      const ulMatch = line.match(/^(\s*)[*\-+]\s+(.*)/);
+      if (ulMatch) {
+        if (!inList || listType !== 'ul') { flushList(); inList = true; listType = 'ul'; listItems = []; }
+        listItems.push(ulMatch[2]);
+        continue;
+      }
+
+      // Ordered list
+      const olMatch = line.match(/^(\s*)\d+\.\s+(.*)/);
+      if (olMatch) {
+        if (!inList || listType !== 'ol') { flushList(); inList = true; listType = 'ol'; listItems = []; }
+        listItems.push(olMatch[2]);
+        continue;
+      }
+
+      flushList();
+
+      // Blockquote
+      if (line.startsWith('>')) {
+        html += `<blockquote>${renderInline(line.slice(1).trim())}</blockquote>`;
+        continue;
+      }
+
+      // Horizontal rule
+      if (/^[-*_]{3,}\s*$/.test(line)) {
+        html += '<hr>';
+        continue;
+      }
+
+      // Blank line
+      if (line.trim() === '') {
+        continue;
+      }
+
+      // Paragraph
+      html += `<p>${renderInline(line)}</p>`;
+    }
+
+    // Flush remaining
+    if (inCode) html += `<pre><code>${escapeHtml(codeLines.join('\n'))}</code></pre>`;
+    flushList();
+    flushTable();
+    return html;
+  }
+
+  return { render };
+})();
+
+// ---------------------------------------------------------------------------
+// App state
+// ---------------------------------------------------------------------------
+let sessionId = '';
+let busy = false;
+
+const chatArea   = document.getElementById('chatArea');
+const msgInput   = document.getElementById('msgInput');
+const sendBtn    = document.getElementById('sendBtn');
+const resetBtn   = document.getElementById('resetBtn');
+
+// ---------------------------------------------------------------------------
+// DOM helpers
+// ---------------------------------------------------------------------------
+function addMsg(cls, html) {
+  const div = document.createElement('div');
+  div.className = 'msg ' + cls;
+  div.innerHTML = html;
+  chatArea.appendChild(div);
+  chatArea.scrollTop = chatArea.scrollHeight;
+  return div;
+}
+
+function addSpinner() {
+  const div = document.createElement('div');
+  div.className = 'spinner';
+  div.id = 'spinner';
+  div.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+  chatArea.appendChild(div);
+  chatArea.scrollTop = chatArea.scrollHeight;
+}
+
+function removeSpinner() {
+  const el = document.getElementById('spinner');
+  if (el) el.remove();
+}
+
+function setBusy(b) {
+  busy = b;
+  sendBtn.disabled = b;
+  msgInput.disabled = b;
+  if (!b) msgInput.focus();
+}
+
+// ---------------------------------------------------------------------------
+// SSE stream reader
+// ---------------------------------------------------------------------------
+async function streamChat(url, body) {
+  addSpinner();
+  setBusy(true);
+
+  let assistantDiv = null;
+  let assistantText = '';
+
+  try {
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      // Parse SSE frames
+      const parts = buffer.split('\n\n');
+      buffer = parts.pop();  // keep incomplete frame
+
+      for (const part of parts) {
+        let eventType = 'message';
+        let eventData = '';
+        for (const line of part.split('\n')) {
+          if (line.startsWith('event:')) eventType = line.slice(6).trim();
+          else if (line.startsWith('data:')) eventData += line.slice(5).trim();
+        }
+        if (!eventData) continue;
+
+        let payload;
+        try { payload = JSON.parse(eventData); } catch { continue; }
+
+        switch (eventType) {
+          case 'session':
+            sessionId = payload.session_id;
+            break;
+
+          case 'text':
+            removeSpinner();
+            assistantText += payload.text;
+            if (!assistantDiv) {
+              assistantDiv = addMsg('assistant', md.render(assistantText));
+            } else {
+              assistantDiv.innerHTML = md.render(assistantText);
+            }
+            chatArea.scrollTop = chatArea.scrollHeight;
+            break;
+
+          case 'tool_call':
+            removeSpinner();
+            addMsg('tool-info', 'Tool call: ' + payload.tool + '\n' + JSON.stringify(payload.input, null, 2));
+            addSpinner();
+            break;
+
+          case 'tool_result':
+            removeSpinner();
+            addMsg('tool-info', 'Result (' + payload.tool + '):\n' + payload.result);
+            addSpinner();
+            break;
+
+          case 'ask_user':
+            removeSpinner();
+            handleAskUser(payload);
+            return;  // stop processing; user will respond
+
+          case 'error':
+            removeSpinner();
+            addMsg('error', 'Error: ' + (payload.error || 'Unknown error'));
+            break;
+
+          case 'done':
+            removeSpinner();
+            break;
+        }
+      }
+    }
+  } catch (err) {
+    removeSpinner();
+    addMsg('error', 'Connection error: ' + err.message);
+  }
+
+  setBusy(false);
+}
+
+// ---------------------------------------------------------------------------
+// ask_user handling
+// ---------------------------------------------------------------------------
+function handleAskUser(payload) {
+  const question = payload.question;
+  addMsg('ask-user', md.render(question));
+  setBusy(false);
+
+  // Override the send handler temporarily to post to /answer
+  const origHandler = sendBtn.onclick;
+  const onAnswer = () => {
+    const answer = msgInput.value.trim();
+    if (!answer) return;
+    addMsg('user', md.render(answer));
+    msgInput.value = '';
+    msgInput.style.height = 'auto';
+    sendBtn.onclick = origHandler;
+    onKeydownHandler = defaultKeydownHandler;
+    streamChat('/answer', { session_id: sessionId, answer });
+  };
+  sendBtn.onclick = onAnswer;
+  onKeydownHandler = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      onAnswer();
+    }
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Send message
+// ---------------------------------------------------------------------------
+function sendMessage() {
+  const text = msgInput.value.trim();
+  if (!text || busy) return;
+  addMsg('user', md.render(text));
+  msgInput.value = '';
+  msgInput.style.height = 'auto';
+  streamChat('/chat', { session_id: sessionId, message: text });
+}
+
+// Default keydown handler for Enter key
+function defaultKeydownHandler(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+let onKeydownHandler = defaultKeydownHandler;
+
+sendBtn.onclick = sendMessage;
+msgInput.addEventListener('keydown', (e) => onKeydownHandler(e));
+
+// Auto-resize textarea
+msgInput.addEventListener('input', () => {
+  msgInput.style.height = 'auto';
+  msgInput.style.height = Math.min(msgInput.scrollHeight, 150) + 'px';
+});
+
+// ---------------------------------------------------------------------------
+// Reset
+// ---------------------------------------------------------------------------
+resetBtn.addEventListener('click', async () => {
+  if (sessionId) {
+    try {
+      await fetch('/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId }),
+      });
+    } catch { /* ignore */ }
+  }
+  sessionId = '';
+  chatArea.innerHTML = '';
+  msgInput.value = '';
+  setBusy(false);
+});
+
+// Focus input on load
+msgInput.focus();
+</script>
+</body>
+</html>

@@ -1,0 +1,141 @@
+{
+  "category": "disease_status",
+  "description": "Current disease status and assessment",
+  "items": [
+    {
+      "id": "current_disease_status",
+      "name": "Current Disease Status",
+      "description": "Overall assessment of current disease status",
+      "data_type": "object",
+      "json_field": "current_disease_status",
+      "sub_items": [
+        {
+          "id": "as_of_date",
+          "name": "Assessment Date",
+          "description": "Date of most recent disease status assessment",
+          "data_type": "date"
+        },
+        {
+          "id": "status",
+          "name": "Status",
+          "description": "Current disease status description",
+          "data_type": "string",
+          "valid_values": {
+            "No evidence of disease (NED)": "Complete remission/response, no detectable cancer",
+            "Stable disease": "Disease present but not progressing",
+            "Responding to treatment": "Disease decreasing in size/burden",
+            "Progressing on treatment": "Disease growing despite current treatment",
+            "Off treatment with stable disease": "Not on treatment, disease stable",
+            "Off treatment, progressed": "Not on treatment, disease has progressed",
+            "Newly diagnosed, not yet treated": "Initial diagnosis, treatment not started",
+            "Metastatic, on active treatment": "Advanced disease, receiving treatment",
+            "Unknown": "Disease status not documented"
+          }
+        },
+        {
+          "id": "evidence_basis",
+          "name": "Evidence Basis",
+          "description": "How status was determined",
+          "data_type": "string",
+          "valid_values": {
+            "Imaging": "Based on recent imaging studies",
+            "Labs/Tumor Markers": "Based on laboratory or tumor marker trends",
+            "Clinical": "Based on clinical assessment/symptoms",
+            "Pathology": "Based on pathologic findings"
+          }
+        }
+      ],
+      "extraction_hints": ["NED", "no evidence of disease", "stable", "progression", "response", "remission", "recurrence"]
+    },
+    {
+      "id": "disease_burden_assessments",
+      "name": "Disease Burden Assessments",
+      "description": "Longitudinal disease burden assessments",
+      "data_type": "array",
+      "json_field": "disease_burden_assessments",
+      "sub_items": [
+        {
+          "id": "assessment_date",
+          "name": "Assessment Date",
+          "data_type": "date"
+        },
+        {
+          "id": "assessment_type",
+          "name": "Assessment Type",
+          "data_type": "string",
+          "valid_values": {
+            "CT": "CT scan",
+            "PET-CT": "PET-CT scan",
+            "MRI": "MRI scan",
+            "Bone Scan": "Nuclear bone scan",
+            "Tumor Markers": "Tumor marker levels",
+            "Clinical": "Clinical examination"
+          }
+        },
+        {
+          "id": "response_category",
+          "name": "Response Category",
+          "data_type": "string",
+          "valid_values": {
+            "CR": "Complete Response",
+            "PR": "Partial Response",
+            "SD": "Stable Disease",
+            "PD": "Progressive Disease",
+            "NE": "Not Evaluable"
+          }
+        },
+        {
+          "id": "sites_assessed",
+          "name": "Sites Assessed",
+          "data_type": "array"
+        },
+        {
+          "id": "notes",
+          "name": "Notes",
+          "data_type": "string"
+        }
+      ],
+      "extraction_hints": ["restaging", "scan", "CT", "PET", "MRI", "RECIST", "response", "progression", "stable"]
+    },
+    {
+      "id": "tumor_marker_trends",
+      "name": "Tumor Marker Trends",
+      "description": "Longitudinal tumor marker values",
+      "data_type": "object",
+      "json_field": "tumor_marker_trends",
+      "sub_items": [
+        {
+          "id": "psa",
+          "name": "PSA Trend",
+          "data_type": "array"
+        },
+        {
+          "id": "cea",
+          "name": "CEA Trend",
+          "data_type": "array"
+        },
+        {
+          "id": "ca125",
+          "name": "CA-125 Trend",
+          "data_type": "array"
+        },
+        {
+          "id": "ca199",
+          "name": "CA 19-9 Trend",
+          "data_type": "array"
+        },
+        {
+          "id": "afp",
+          "name": "AFP Trend",
+          "data_type": "array"
+        },
+        {
+          "id": "other",
+          "name": "Other Markers",
+          "data_type": "object"
+        }
+      ],
+      "extraction_hints": ["PSA", "CEA", "CA-125", "CA 19-9", "AFP", "tumor marker", "rising", "falling", "stable"]
+    }
+  ]
+}

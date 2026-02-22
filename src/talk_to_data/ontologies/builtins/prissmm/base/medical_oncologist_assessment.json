@@ -1,0 +1,63 @@
+{
+  "category": "medical_oncologist_assessment",
+  "description": "PRISSMM Medical Oncologist Assessment dataset - disease status evaluations",
+  "per_diagnosis": true,
+  "repeatable": true,
+  "items": [
+    {
+      "id": "ca_seq",
+      "name": "Cancer Sequence",
+      "description": "Cancer sequence number this assessment is for",
+      "data_type": "integer",
+      "json_field": "ca_seq"
+    },
+    {
+      "id": "md_dx_days",
+      "name": "Days from Diagnosis to Assessment",
+      "description": "Days from cancer diagnosis to this assessment",
+      "data_type": "integer",
+      "json_field": "md_dx_days"
+    },
+    {
+      "id": "md_ca",
+      "name": "Evidence of Cancer",
+      "description": "Whether there is evidence of cancer at this assessment",
+      "data_type": "string",
+      "json_field": "md_ca",
+      "valid_values": {
+        "Evidence of cancer": "Cancer present",
+        "No evidence of cancer": "NED/remission",
+        "Unknown": "Unable to determine"
+      }
+    },
+    {
+      "id": "md_ca_status",
+      "name": "Cancer Status",
+      "description": "Disease status assessment",
+      "data_type": "string",
+      "json_field": "md_ca_status",
+      "valid_values": {
+        "Improving": "Disease responding/improving",
+        "Stable": "Stable disease",
+        "Mixed response": "Some sites improving, others worsening",
+        "Worsening": "Disease progressing",
+        "Not applicable": "No disease to assess",
+        "Unknown": "Unable to assess"
+      }
+    },
+    {
+      "id": "md_ecog",
+      "name": "ECOG Performance Status",
+      "description": "ECOG performance status at this assessment",
+      "data_type": "integer",
+      "json_field": "md_ecog",
+      "valid_values": {
+        "0": "Fully active",
+        "1": "Restricted but ambulatory",
+        "2": "Ambulatory but unable to work",
+        "3": "Limited self-care",
+        "4": "Completely disabled"
+      }
+    }
+  ]
+}

@@ -1,0 +1,171 @@
+{
+  "schema_id": "melanoma",
+  "schema_name": "Melanoma (Cutaneous)",
+  "applicable_years": "2018+",
+  "primary_site_codes": ["C440", "C441", "C442", "C443", "C444", "C445", "C446", "C447", "C448", "C449"],
+  "histology_codes": ["8720-8780"],
+  "description": "Site-specific data items for cutaneous melanoma, AJCC 8th Edition. Includes Breslow thickness, ulceration, and molecular markers.",
+  "items": [
+    {
+      "naaccr_item": "3932",
+      "name": "Breslow Tumor Thickness",
+      "json_field": "naaccr_3932_breslow_thickness",
+      "human_readable_field": "breslow_thickness_mm",
+      "description": "Breslow depth of melanoma in millimeters (measured to nearest 0.1 mm)",
+      "valid_codes": "Numeric X.X (0.1-99.9 mm), 00.0=In situ, XX.8=Not applicable, XX.9=Unknown",
+      "extraction_hints": ["Breslow", "thickness", "depth", "mm", "millimeters"],
+      "clinical_significance": "Key prognostic factor. T1: <=1.0mm, T2: 1.01-2.0mm, T3: 2.01-4.0mm, T4: >4.0mm",
+      "required_for_staging": true
+    },
+    {
+      "naaccr_item": "3933",
+      "name": "Ulceration",
+      "json_field": "naaccr_3933_ulceration",
+      "human_readable_field": "ulceration",
+      "description": "Presence of ulceration over the melanoma",
+      "valid_codes": "0=No ulceration, 1=Ulceration present, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["ulceration", "ulcerated", "no ulceration"],
+      "clinical_significance": "Ulceration upgrades T category (e.g., T1a to T1b)",
+      "required_for_staging": true
+    },
+    {
+      "naaccr_item": "3894",
+      "name": "Mitotic Rate",
+      "json_field": "naaccr_3894_mitotic_rate",
+      "human_readable_field": "mitotic_rate_per_mm2",
+      "description": "Mitotic rate (mitoses per mm²)",
+      "valid_codes": "00=No mitoses identified, 01-99=Mitoses per mm², X8=Not applicable, X9=Unknown",
+      "extraction_hints": ["mitotic rate", "mitoses", "per mm2", "per mm squared", "mitotic figures"],
+      "clinical_significance": "Higher mitotic rate associated with worse prognosis"
+    },
+    {
+      "naaccr_item": "3895",
+      "name": "Lymphovascular Invasion",
+      "json_field": "naaccr_3895_lvi",
+      "human_readable_field": "lymphovascular_invasion",
+      "description": "Presence of lymphovascular invasion",
+      "valid_codes": "0=Not identified, 1=Present, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["lymphovascular invasion", "LVI", "vascular invasion"]
+    },
+    {
+      "naaccr_item": "3896",
+      "name": "Perineural Invasion",
+      "json_field": "naaccr_3896_perineural_invasion",
+      "human_readable_field": "perineural_invasion",
+      "description": "Presence of perineural invasion",
+      "valid_codes": "0=Not identified, 1=Present, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["perineural invasion", "neurotropism"]
+    },
+    {
+      "naaccr_item": "3897",
+      "name": "Tumor-Infiltrating Lymphocytes (TILs)",
+      "json_field": "naaccr_3897_tils",
+      "human_readable_field": "tumor_infiltrating_lymphocytes",
+      "description": "Presence and character of TILs",
+      "valid_codes": "0=Absent, 1=Non-brisk, 2=Brisk, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["TILs", "tumor infiltrating lymphocytes", "brisk", "non-brisk", "lymphocyte infiltrate"]
+    },
+    {
+      "naaccr_item": "3943",
+      "name": "Satellite Nodules",
+      "json_field": "naaccr_3943_satellites",
+      "human_readable_field": "satellite_nodules",
+      "description": "Presence of satellite or in-transit metastases",
+      "valid_codes": "0=No satellites, 1=Present (microsatellites), 2=Present (satellites/in-transit), 3=Both, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["satellite", "microsatellite", "in-transit"]
+    },
+    {
+      "naaccr_item": "3870",
+      "name": "BRAF Mutational Analysis",
+      "json_field": "naaccr_3870_braf",
+      "human_readable_field": "braf_status",
+      "description": "BRAF mutation status",
+      "valid_codes": "0=Negative/Wild type, 1=V600E mutation, 2=V600K mutation, 3=Other V600 mutation, 4=Non-V600 mutation, 5=BRAF mutation NOS, 7=Test ordered, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["BRAF", "V600E", "V600K", "BRAF mutation"],
+      "clinical_significance": "BRAF V600 mutation predicts response to BRAF/MEK inhibitors (dabrafenib/trametinib, vemurafenib/cobimetinib)"
+    },
+    {
+      "naaccr_item": "3871",
+      "name": "NRAS Mutation Status",
+      "json_field": "naaccr_3871_nras",
+      "human_readable_field": "nras_status",
+      "description": "NRAS mutation status",
+      "valid_codes": "0=Negative/Wild type, 1=Q61 mutation, 2=Other NRAS mutation, 3=NRAS mutation NOS, 7=Test ordered, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["NRAS", "NRAS mutation", "Q61"],
+      "clinical_significance": "NRAS mutations are mutually exclusive with BRAF; treatment options limited"
+    },
+    {
+      "naaccr_item": "3872",
+      "name": "KIT Mutation Status",
+      "json_field": "naaccr_3872_kit",
+      "human_readable_field": "kit_status",
+      "description": "KIT mutation status (relevant for acral/mucosal melanoma)",
+      "valid_codes": "0=Negative/Wild type, 1=Positive/Mutated, 7=Test ordered, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["KIT", "c-KIT", "KIT mutation"],
+      "clinical_significance": "KIT mutations may predict response to imatinib in acral/mucosal melanoma"
+    },
+    {
+      "naaccr_item": "3814",
+      "name": "Grade Clinical",
+      "json_field": "naaccr_3814_grade",
+      "human_readable_field": "histologic_subtype",
+      "description": "Histologic subtype (used in place of traditional grading)",
+      "valid_codes": "L=Lentigo maligna, S=Superficial spreading, N=Nodular, A=Acral lentiginous, D=Desmoplastic, O=Other/NOS, 9=Unknown",
+      "extraction_hints": ["superficial spreading", "nodular", "lentigo maligna", "acral lentiginous", "desmoplastic"]
+    },
+    {
+      "naaccr_item": "3898",
+      "name": "Regression",
+      "json_field": "naaccr_3898_regression",
+      "human_readable_field": "regression",
+      "description": "Presence of regression in the melanoma",
+      "valid_codes": "0=No regression, 1=Regression present, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["regression", "regressed"]
+    }
+  ],
+  "additional_biomarkers_to_extract": [
+    {
+      "name": "PD-L1 Expression",
+      "json_field": "pdl1_status",
+      "description": "PD-L1 expression status",
+      "extraction_hints": ["PD-L1", "PDL1"]
+    },
+    {
+      "name": "Tumor Mutation Burden",
+      "json_field": "tmb",
+      "description": "Tumor mutation burden (mutations per megabase)",
+      "extraction_hints": ["TMB", "tumor mutation burden"]
+    },
+    {
+      "name": "LDH Level",
+      "json_field": "ldh_level",
+      "description": "Serum LDH level (important for M1d staging)",
+      "extraction_hints": ["LDH", "lactate dehydrogenase"]
+    }
+  ],
+  "example_output": {
+    "schema_id": "melanoma",
+    "site_specific_factors": {
+      "naaccr_3932_breslow_thickness": "2.4",
+      "breslow_thickness_mm": 2.4,
+      "naaccr_3933_ulceration": "1",
+      "ulceration": "Present",
+      "naaccr_3894_mitotic_rate": "05",
+      "mitotic_rate_per_mm2": 5,
+      "naaccr_3895_lvi": "0",
+      "lymphovascular_invasion": "Not identified",
+      "naaccr_3896_perineural_invasion": "0",
+      "perineural_invasion": "Not identified",
+      "naaccr_3897_tils": "1",
+      "tumor_infiltrating_lymphocytes": "Non-brisk",
+      "naaccr_3870_braf": "1",
+      "braf_status": "V600E mutation",
+      "naaccr_3871_nras": "0",
+      "nras_status": "Wild type",
+      "naaccr_3872_kit": "0",
+      "kit_status": "Wild type",
+      "naaccr_3814_grade": "S",
+      "histologic_subtype": "Superficial spreading"
+    }
+  }
+}

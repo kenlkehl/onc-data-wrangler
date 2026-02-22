@@ -1,0 +1,27 @@
+{
+  "category": "cancer_biomarker",
+  "description": "Cancer biomarker testing results. Note that EGFR should only refer to an EGFR mutation, not estimated GFR (which is kidney function).",
+  "items": [
+    {
+      "name": "Biomarker Type",
+      "json_field": "biomarker_type",
+      "description": "Type of biomarker assay (e.g., mutation, rearrangement, expression, amplification)",
+      "data_type": "string",
+      "extraction_hints": ["mutation", "rearrangement", "fusion", "expression", "amplification", "IHC", "FISH", "NGS"]
+    },
+    {
+      "name": "Biomarker Tested",
+      "json_field": "biomarker_tested",
+      "description": "Name of the biomarker tested (e.g., EGFR, ALK, ROS1, PD-L1, TTF-1, p40, KRAS, HER2, BRAF, RET, MET, NTRK)",
+      "data_type": "string",
+      "extraction_hints": ["EGFR", "ALK", "ROS1", "PD-L1", "TTF-1", "p40", "KRAS", "HER2", "BRAF", "RET", "MET", "NTRK"]
+    },
+    {
+      "name": "Biomarker Result",
+      "json_field": "biomarker_result",
+      "description": "Result of the biomarker test (e.g., positive, negative, 60%, L858R mutant, CD74-ROS1 fusion)",
+      "data_type": "string",
+      "extraction_hints": ["positive", "negative", "detected", "not detected", "mutant", "wild type", "fusion"]
+    }
+  ]
+}

@@ -1,0 +1,187 @@
+{
+  "schema_id": "colorectal",
+  "schema_name": "Colorectal Cancer",
+  "applicable_years": "2018+",
+  "primary_site_codes": ["C180", "C181", "C182", "C183", "C184", "C185", "C186", "C187", "C188", "C189", "C199", "C209"],
+  "description": "Site-specific data items for colon and rectal cancers, AJCC 8th Edition. Includes MSI, KRAS, BRAF, and CEA.",
+  "items": [
+    {
+      "naaccr_item": "3890",
+      "name": "Microsatellite Instability (MSI)",
+      "json_field": "naaccr_3890_msi",
+      "human_readable_field": "msi_status",
+      "description": "Microsatellite instability test result",
+      "valid_codes": "0=MSS (Microsatellite Stable) or MSI-L (Low), 1=MSI-L (Low) stated as such, 2=MSI-H (High), 7=Test ordered, results not in chart, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["MSI", "microsatellite instability", "MSS", "MSI-L", "MSI-H", "microsatellite stable", "microsatellite high"],
+      "clinical_significance": "MSI-H predicts response to immunotherapy (pembrolizumab) and favorable prognosis in early-stage disease"
+    },
+    {
+      "naaccr_item": "3891",
+      "name": "Mismatch Repair (MMR) Status",
+      "json_field": "naaccr_3891_mmr",
+      "human_readable_field": "mmr_status",
+      "description": "Mismatch repair protein status by IHC (MLH1, MSH2, MSH6, PMS2)",
+      "valid_codes": "0=pMMR (MMR intact/proficient), 2=dMMR (MMR deficient - loss of any protein), 7=Test ordered, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["MMR", "mismatch repair", "MLH1", "MSH2", "MSH6", "PMS2", "dMMR", "pMMR", "intact", "deficient", "loss of"],
+      "clinical_significance": "dMMR equivalent to MSI-H; predicts Lynch syndrome screening need"
+    },
+    {
+      "naaccr_item": "3910",
+      "name": "KRAS",
+      "json_field": "naaccr_3910_kras",
+      "human_readable_field": "kras_status",
+      "description": "KRAS mutation status in colorectal cancer",
+      "valid_codes": "0=Negative/Normal/Wild type, 1=Positive/Mutated (codon 12), 2=Positive/Mutated (codon 13), 3=Positive/Mutated (codon 61), 4=Positive/Mutated (codon 146), 5=Positive/Mutated NOS, 7=Test ordered, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["KRAS", "KRAS mutation", "KRAS wild type", "KRAS mutant", "codon 12", "codon 13"],
+      "clinical_significance": "KRAS mutation predicts resistance to anti-EGFR therapy (cetuximab, panitumumab)"
+    },
+    {
+      "naaccr_item": "3911",
+      "name": "NRAS",
+      "json_field": "naaccr_3911_nras",
+      "human_readable_field": "nras_status",
+      "description": "NRAS mutation status (effective 2021+)",
+      "valid_codes": "0=Negative/Wild type, 1=Positive/Mutated (codon 12/13), 2=Positive/Mutated (codon 61), 3=Positive/Mutated NOS, 7=Test ordered, 8=Not applicable (diagnosed before 2021), 9=Unknown",
+      "extraction_hints": ["NRAS", "NRAS mutation"],
+      "clinical_significance": "NRAS mutation predicts resistance to anti-EGFR therapy"
+    },
+    {
+      "naaccr_item": "3844",
+      "name": "BRAF Mutational Analysis",
+      "json_field": "naaccr_3844_braf",
+      "human_readable_field": "braf_status",
+      "description": "BRAF mutation status (effective 2021+)",
+      "valid_codes": "0=Negative/Wild type, 1=V600E mutation, 2=Other BRAF mutation, 3=BRAF mutation NOS, 7=Test ordered, 8=Not applicable (diagnosed before 2021), 9=Unknown",
+      "extraction_hints": ["BRAF", "V600E", "BRAF mutation", "BRAF wild type"],
+      "clinical_significance": "BRAF V600E associated with poor prognosis; predicts response to encorafenib + cetuximab"
+    },
+    {
+      "naaccr_item": "3917",
+      "name": "CEA Pretreatment Lab Value",
+      "json_field": "naaccr_3917_cea_value",
+      "human_readable_field": "cea_pretreatment_value",
+      "description": "Carcinoembryonic antigen (CEA) value before treatment (ng/mL)",
+      "valid_codes": "Numeric XX.X (0.0-999.9), XX0.1=<0.1, XXX.X=1000+, XX9.8=Not done, XX9.9=Unknown",
+      "extraction_hints": ["CEA", "carcinoembryonic antigen", "CEA level", "ng/mL"],
+      "clinical_significance": "Elevated CEA (>5 ng/mL) associated with worse prognosis"
+    },
+    {
+      "naaccr_item": "3918",
+      "name": "CEA Pretreatment Interpretation",
+      "json_field": "naaccr_3918_cea_interpretation",
+      "human_readable_field": "cea_interpretation",
+      "description": "Interpretation of pretreatment CEA result",
+      "valid_codes": "0=Normal (within normal limits), 1=Abnormal (elevated), 7=Test ordered, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["CEA normal", "CEA elevated", "CEA high", "CEA within normal"]
+    },
+    {
+      "naaccr_item": "3892",
+      "name": "Tumor Deposits",
+      "json_field": "naaccr_3892_tumor_deposits",
+      "human_readable_field": "tumor_deposits_count",
+      "description": "Number of tumor deposits (satellite nodules in pericolorectal fat)",
+      "valid_codes": "00=No tumor deposits, 01-99=Number of deposits, X8=Not applicable, X9=Unknown",
+      "extraction_hints": ["tumor deposits", "satellite nodules", "peritumoral deposits"],
+      "clinical_significance": "Tumor deposits affect N category staging"
+    },
+    {
+      "naaccr_item": "3893",
+      "name": "Circumferential Resection Margin (CRM)",
+      "json_field": "naaccr_3893_crm",
+      "human_readable_field": "circumferential_resection_margin_mm",
+      "description": "Distance from tumor to circumferential resection margin in mm (rectal cancer)",
+      "valid_codes": "Numeric X.X (0.0-99.9 mm), XX.8=Not applicable (colon), XX.9=Unknown",
+      "extraction_hints": ["CRM", "circumferential margin", "radial margin", "mesorectal margin"],
+      "clinical_significance": "CRM <1mm associated with higher local recurrence in rectal cancer"
+    },
+    {
+      "naaccr_item": "3934",
+      "name": "Perineural Invasion",
+      "json_field": "naaccr_3934_perineural_invasion",
+      "human_readable_field": "perineural_invasion",
+      "description": "Presence of perineural invasion",
+      "valid_codes": "0=Not identified/Not present, 1=Present/Identified, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["perineural invasion", "PNI"]
+    },
+    {
+      "naaccr_item": "3936",
+      "name": "Lymphovascular Invasion (LVI)",
+      "json_field": "naaccr_3936_lvi",
+      "human_readable_field": "lymphovascular_invasion",
+      "description": "Presence of lymphovascular invasion",
+      "valid_codes": "0=Not identified/Not present, 1=Present/Identified, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["lymphovascular invasion", "LVI", "vascular invasion", "angiolymphatic"]
+    },
+    {
+      "naaccr_item": "3814",
+      "name": "Grade Clinical",
+      "json_field": "naaccr_3814_grade_clinical",
+      "human_readable_field": "grade_clinical",
+      "description": "Clinical grade (histologic differentiation)",
+      "valid_codes": "1=G1 Well differentiated, 2=G2 Moderately differentiated, 3=G3 Poorly differentiated, 4=G4 Undifferentiated, L=Low grade (G1-G2), H=High grade (G3-G4), 9=Unknown",
+      "extraction_hints": ["well differentiated", "moderately differentiated", "poorly differentiated", "grade"]
+    },
+    {
+      "naaccr_item": "3895",
+      "name": "Extranodal Extension",
+      "json_field": "naaccr_3895_extranodal_extension",
+      "human_readable_field": "extranodal_extension",
+      "description": "Presence of extranodal extension in lymph nodes",
+      "valid_codes": "0=Not identified, 1=Present, 7=N/A (no positive nodes), 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["extranodal extension", "ENE", "extracapsular extension"]
+    }
+  ],
+  "derived_fields": [
+    {
+      "name": "RAS Mutation Status",
+      "json_field": "ras_status",
+      "description": "Combined KRAS and NRAS status",
+      "derivation_rules": {
+        "Wild type": "Both KRAS and NRAS wild type",
+        "Mutant": "Either KRAS or NRAS mutated"
+      }
+    },
+    {
+      "name": "Sidedness",
+      "json_field": "tumor_sidedness",
+      "description": "Left-sided vs right-sided primary",
+      "derivation_rules": {
+        "Right-sided": "Cecum (C180), Ascending (C182), Hepatic flexure (C183), Transverse (C184)",
+        "Left-sided": "Splenic flexure (C185), Descending (C186), Sigmoid (C187), Rectosigmoid (C199), Rectum (C209)"
+      }
+    }
+  ],
+  "example_output": {
+    "schema_id": "colorectal",
+    "site_specific_factors": {
+      "naaccr_3890_msi": "0",
+      "msi_status": "MSS (Microsatellite Stable)",
+      "naaccr_3891_mmr": "0",
+      "mmr_status": "pMMR (Intact)",
+      "mmr_proteins": {
+        "MLH1": "Intact",
+        "MSH2": "Intact",
+        "MSH6": "Intact",
+        "PMS2": "Intact"
+      },
+      "naaccr_3910_kras": "0",
+      "kras_status": "Wild type",
+      "naaccr_3911_nras": "0",
+      "nras_status": "Wild type",
+      "naaccr_3844_braf": "0",
+      "braf_status": "Wild type",
+      "ras_status": "Wild type (KRAS/NRAS wild type)",
+      "naaccr_3917_cea_value": "12.5",
+      "cea_pretreatment_value": 12.5,
+      "naaccr_3918_cea_interpretation": "1",
+      "cea_interpretation": "Elevated",
+      "naaccr_3892_tumor_deposits": "00",
+      "tumor_deposits_count": 0,
+      "naaccr_3934_perineural_invasion": "0",
+      "perineural_invasion": "Not identified",
+      "naaccr_3936_lvi": "1",
+      "lymphovascular_invasion": "Present",
+      "tumor_sidedness": "Left-sided"
+    }
+  }
+}

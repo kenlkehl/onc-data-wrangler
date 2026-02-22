@@ -1,0 +1,28 @@
+{
+  "category": "cancer_surgery",
+  "description": "Cancer surgical procedures performed on the patient.",
+  "items": [
+    {
+      "name": "Surgery Type",
+      "json_field": "surgery_type",
+      "description": "Type of surgical procedure performed",
+      "data_type": "string",
+      "valid_codes": "lobectomy, wedge_resection, segmentectomy, pneumonectomy, thymectomy, pleurectomy_decortication, extrapleural_pneumonectomy",
+      "extraction_hints": ["lobectomy", "wedge resection", "segmentectomy", "pneumonectomy", "thymectomy", "pleurectomy", "decortication", "extrapleural", "resection", "VATS"]
+    },
+    {
+      "name": "Surgery Site",
+      "json_field": "surgery_site",
+      "description": "Anatomical site of surgery (e.g., RUL, RML, RLL, LUL, LLL, lingula, left_lung, thymus)",
+      "data_type": "string",
+      "extraction_hints": ["RUL", "RML", "RLL", "LUL", "LLL", "lingula", "right upper lobe", "right middle lobe", "right lower lobe", "left upper lobe", "left lower lobe"]
+    },
+    {
+      "name": "Surgery Date",
+      "json_field": "surgery_date",
+      "description": "Date of surgery, as specific as is known. Format YYYY-MM-DD when possible.",
+      "data_type": "date",
+      "extraction_hints": ["surgery date", "operative date", "operation date", "underwent"]
+    }
+  ]
+}

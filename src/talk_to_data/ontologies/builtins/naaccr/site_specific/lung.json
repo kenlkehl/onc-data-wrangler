@@ -1,0 +1,208 @@
+{
+  "schema_id": "lung",
+  "schema_name": "Lung Cancer (2018-2024)",
+  "applicable_years": "2018-2024",
+  "primary_site_codes": ["C340", "C341", "C342", "C343", "C348", "C349"],
+  "description": "Site-specific data items for lung and bronchus cancers, AJCC 8th Edition",
+  "items": [
+    {
+      "naaccr_item": "3814",
+      "name": "Grade Clinical",
+      "json_field": "naaccr_3814_grade_clinical",
+      "human_readable_field": "grade_clinical",
+      "description": "Clinical grade of tumor before treatment",
+      "valid_codes": "1=G1 Well differentiated, 2=G2 Moderately differentiated, 3=G3 Poorly differentiated, 4=G4 Undifferentiated, 9=Grade cannot be assessed (GX), A=Well differentiated, B=Moderately differentiated, C=Poorly differentiated, D=Undifferentiated",
+      "extraction_hints": ["well differentiated", "moderately differentiated", "poorly differentiated", "undifferentiated", "grade 1", "grade 2", "grade 3", "grade 4"]
+    },
+    {
+      "naaccr_item": "3815",
+      "name": "Grade Pathological",
+      "json_field": "naaccr_3815_grade_pathological",
+      "human_readable_field": "grade_pathological",
+      "description": "Pathological grade from resection specimen",
+      "valid_codes": "Same as Grade Clinical",
+      "extraction_hints": ["surgical pathology", "resection", "final path"]
+    },
+    {
+      "naaccr_item": "3929",
+      "name": "Separate Tumor Nodules",
+      "json_field": "naaccr_3929_separate_tumor_nodules",
+      "human_readable_field": "separate_tumor_nodules",
+      "description": "Presence and location of separate tumor nodules",
+      "valid_codes": "0=No separate tumor nodules, 1=Separate tumor nodule(s) in same lobe, 2=Separate tumor nodule(s) in different ipsilateral lobe, 3=Separate tumor nodule(s) both same and different ipsilateral lobes, 4=Separate tumor nodule(s) contralateral lung, 5=Separate tumor nodule(s) ipsilateral and contralateral, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["satellite nodule", "separate nodule", "additional nodule", "tumor nodules"]
+    },
+    {
+      "naaccr_item": "3937",
+      "name": "Visceral and Parietal Pleural Invasion",
+      "json_field": "naaccr_3937_pleural_invasion",
+      "human_readable_field": "pleural_invasion",
+      "description": "Visceral and/or parietal pleural invasion",
+      "valid_codes": "0=No visceral pleural invasion (PL0), 1=Visceral pleural invasion beyond elastic layer (PL1), 2=Visceral pleural invasion to surface (PL2), 3=Parietal pleural invasion (PL3), 4=Both visceral and parietal, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["pleural invasion", "visceral pleura", "parietal pleura", "PL0", "PL1", "PL2", "PL3"]
+    },
+    {
+      "naaccr_item": "3938",
+      "name": "ALK Rearrangement",
+      "json_field": "naaccr_3938_alk_rearrangement",
+      "human_readable_field": "alk_status",
+      "description": "ALK gene rearrangement status",
+      "valid_codes": "0=Negative (ALK not rearranged), 1=Positive (ALK rearranged), 7=Test ordered but results not in chart, 8=Not applicable (histology not adenocarcinoma), 9=Unknown or not stated",
+      "extraction_hints": ["ALK", "ALK rearrangement", "ALK fusion", "EML4-ALK", "anaplastic lymphoma kinase"],
+      "clinical_significance": "Predicts response to ALK inhibitors (crizotinib, alectinib, brigatinib, lorlatinib)"
+    },
+    {
+      "naaccr_item": "3939",
+      "name": "EGFR Mutational Analysis",
+      "json_field": "naaccr_3939_egfr_mutational_analysis",
+      "human_readable_field": "egfr_status",
+      "description": "EGFR mutation status",
+      "valid_codes": "0=Negative (wild type), 1=Positive for exon 19 deletion, 2=Positive for L858R (exon 21), 3=Positive for T790M, 4=Positive for exon 20 insertion, 5=Positive for other activating mutation, 6=Positive for uncommon mutation, 7=Test ordered, results not in chart, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["EGFR", "epidermal growth factor receptor", "exon 19", "L858R", "T790M", "exon 20 insertion", "EGFR mutation"],
+      "clinical_significance": "Predicts response to EGFR TKIs (erlotinib, gefitinib, afatinib, osimertinib)"
+    },
+    {
+      "naaccr_item": "3940",
+      "name": "KRAS Mutation Status",
+      "json_field": "naaccr_3940_kras",
+      "human_readable_field": "kras_status",
+      "description": "KRAS mutation status (commonly extracted, not always NAACCR standard for lung)",
+      "valid_codes": "0=Negative/Wild type, 1=G12C mutation, 2=G12D mutation, 3=G12V mutation, 4=G12A mutation, 5=G13X mutation, 6=Other KRAS mutation, 7=Test ordered, 9=Unknown",
+      "extraction_hints": ["KRAS", "G12C", "G12D", "G12V", "KRAS mutation"],
+      "clinical_significance": "KRAS G12C predicts response to sotorasib, adagrasib"
+    },
+    {
+      "naaccr_item": "3941",
+      "name": "ROS1 Translocation Status",
+      "json_field": "naaccr_3941_ros1",
+      "human_readable_field": "ros1_status",
+      "description": "ROS1 rearrangement/translocation status",
+      "valid_codes": "0=Negative, 1=Positive, 7=Test ordered, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["ROS1", "ROS1 rearrangement", "ROS1 fusion", "ROS1 translocation"],
+      "clinical_significance": "Predicts response to crizotinib, entrectinib"
+    },
+    {
+      "naaccr_item": "3942",
+      "name": "BRAF Mutation Status",
+      "json_field": "naaccr_3942_braf_lung",
+      "human_readable_field": "braf_status",
+      "description": "BRAF mutation status in lung cancer",
+      "valid_codes": "0=Negative, 1=V600E mutation, 2=Other BRAF mutation, 7=Test ordered, 9=Unknown",
+      "extraction_hints": ["BRAF", "V600E", "BRAF mutation"],
+      "clinical_significance": "BRAF V600E predicts response to dabrafenib + trametinib"
+    },
+    {
+      "naaccr_item": "3943",
+      "name": "MET Status",
+      "json_field": "naaccr_3943_met",
+      "human_readable_field": "met_status",
+      "description": "MET amplification or exon 14 skipping mutation status",
+      "valid_codes": "0=Negative, 1=MET amplification, 2=MET exon 14 skipping mutation, 3=Both amplification and exon 14 skip, 7=Test ordered, 9=Unknown",
+      "extraction_hints": ["MET", "MET amplification", "MET exon 14", "METex14", "c-MET"],
+      "clinical_significance": "Predicts response to capmatinib, tepotinib"
+    },
+    {
+      "naaccr_item": "3944",
+      "name": "RET Rearrangement Status",
+      "json_field": "naaccr_3944_ret",
+      "human_readable_field": "ret_status",
+      "description": "RET gene rearrangement status",
+      "valid_codes": "0=Negative, 1=Positive, 7=Test ordered, 9=Unknown",
+      "extraction_hints": ["RET", "RET rearrangement", "RET fusion", "KIF5B-RET"],
+      "clinical_significance": "Predicts response to selpercatinib, pralsetinib"
+    },
+    {
+      "naaccr_item": "3945",
+      "name": "NTRK Fusion Status",
+      "json_field": "naaccr_3945_ntrk",
+      "human_readable_field": "ntrk_status",
+      "description": "NTRK1/2/3 gene fusion status",
+      "valid_codes": "0=Negative, 1=NTRK1 fusion, 2=NTRK2 fusion, 3=NTRK3 fusion, 4=NTRK fusion NOS, 7=Test ordered, 9=Unknown",
+      "extraction_hints": ["NTRK", "NTRK fusion", "TRK", "NTRK1", "NTRK2", "NTRK3"],
+      "clinical_significance": "Predicts response to larotrectinib, entrectinib"
+    },
+    {
+      "naaccr_item": "3946",
+      "name": "HER2/ERBB2 Status",
+      "json_field": "naaccr_3946_her2_lung",
+      "human_readable_field": "her2_status",
+      "description": "HER2/ERBB2 mutation or amplification in lung",
+      "valid_codes": "0=Negative, 1=HER2 mutation, 2=HER2 amplification, 3=Both, 7=Test ordered, 9=Unknown",
+      "extraction_hints": ["HER2", "ERBB2", "HER2 mutation", "HER2 amplification"],
+      "clinical_significance": "Predicts response to trastuzumab deruxtecan"
+    },
+    {
+      "naaccr_item": "3947",
+      "name": "PD-L1 Expression",
+      "json_field": "naaccr_3947_pdl1_percent",
+      "human_readable_field": "pdl1_tps",
+      "description": "PD-L1 Tumor Proportion Score (TPS) percentage",
+      "valid_codes": "Numeric 0.0-100.0, XX.X=Unknown, 988=Not applicable",
+      "extraction_hints": ["PD-L1", "PDL1", "TPS", "tumor proportion score", "22C3", "SP263", "SP142"],
+      "clinical_significance": "High PD-L1 (>=50%) predicts better response to pembrolizumab monotherapy"
+    },
+    {
+      "naaccr_item": "3948",
+      "name": "PD-L1 Interpretation",
+      "json_field": "naaccr_3948_pdl1_interpretation",
+      "human_readable_field": "pdl1_interpretation",
+      "description": "Categorical interpretation of PD-L1 expression",
+      "valid_codes": "0=Negative (<1%), 1=Low (1-49%), 2=High (>=50%), 7=Test ordered, 9=Unknown",
+      "extraction_hints": ["PD-L1 negative", "PD-L1 low", "PD-L1 high", "PD-L1 positive"]
+    }
+  ],
+  "additional_biomarkers_to_extract": [
+    {
+      "name": "Tumor Mutation Burden",
+      "json_field": "tumor_mutation_burden",
+      "human_readable_field": "tmb",
+      "description": "Tumor mutation burden (mutations per megabase)",
+      "extraction_hints": ["TMB", "tumor mutation burden", "mutations per megabase", "mut/Mb"]
+    },
+    {
+      "name": "Histology Subtype",
+      "json_field": "histology_subtype",
+      "description": "Detailed histology subtype (for adenocarcinoma patterns)",
+      "extraction_hints": ["lepidic", "acinar", "papillary", "micropapillary", "solid", "mucinous", "adenosquamous"]
+    }
+  ],
+  "example_output": {
+    "schema_id": "lung",
+    "site_specific_factors": {
+      "naaccr_3814_grade_clinical": "2",
+      "grade_clinical": "Moderately differentiated",
+      "naaccr_3815_grade_pathological": null,
+      "grade_pathological": null,
+      "naaccr_3929_separate_tumor_nodules": "0",
+      "separate_tumor_nodules": "No separate tumor nodules",
+      "naaccr_3937_pleural_invasion": "1",
+      "pleural_invasion": "Visceral pleural invasion (PL1)",
+      "naaccr_3938_alk_rearrangement": "0",
+      "alk_status": "Negative",
+      "naaccr_3939_egfr_mutational_analysis": "0",
+      "egfr_status": "Wild type",
+      "egfr_mutation_type": null,
+      "naaccr_3940_kras": "1",
+      "kras_status": "G12C mutation",
+      "kras_mutation_type": "G12C",
+      "naaccr_3941_ros1": "0",
+      "ros1_status": "Negative",
+      "naaccr_3942_braf_lung": "0",
+      "braf_status": "Negative",
+      "naaccr_3943_met": "0",
+      "met_status": "Negative",
+      "naaccr_3944_ret": "0",
+      "ret_status": "Negative",
+      "naaccr_3945_ntrk": "0",
+      "ntrk_status": "Negative",
+      "naaccr_3946_her2_lung": "9",
+      "her2_status": "Unknown/Not tested",
+      "naaccr_3947_pdl1_percent": "75.0",
+      "pdl1_tps": "75%",
+      "naaccr_3948_pdl1_interpretation": "2",
+      "pdl1_interpretation": "High (>=50%)",
+      "tumor_mutation_burden": null,
+      "histology_subtype": "Acinar predominant"
+    }
+  }
+}

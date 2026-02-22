@@ -1,0 +1,197 @@
+{
+  "category": "clinical_trial_eligibility",
+  "description": "Common clinical trial eligibility concerns",
+  "items": [
+    {
+      "id": "brain_metastases",
+      "name": "Brain Metastases",
+      "description": "Presence and status of brain metastases",
+      "data_type": "object",
+      "json_field": "brain_metastases",
+      "sub_items": [
+        {
+          "id": "present",
+          "name": "Present",
+          "data_type": "boolean"
+        },
+        {
+          "id": "status",
+          "name": "Status",
+          "data_type": "string",
+          "valid_values": {
+            "Active untreated": "Untreated active brain metastases",
+            "Active treated": "Recently treated, not yet stable",
+            "Treated stable": "Treated and stable (typically 4+ weeks)",
+            "Leptomeningeal": "Leptomeningeal disease present"
+          }
+        },
+        {
+          "id": "last_treatment_date",
+          "name": "Last Treatment Date",
+          "data_type": "date"
+        }
+      ],
+      "extraction_hints": ["brain", "CNS", "metastases", "mets", "SRS", "WBRT", "craniotomy", "leptomeningeal"]
+    },
+    {
+      "id": "measurable_disease",
+      "name": "Measurable Disease",
+      "description": "Presence of measurable disease per RECIST 1.1 criteria",
+      "data_type": "object",
+      "json_field": "measurable_disease",
+      "sub_items": [
+        {
+          "id": "present",
+          "name": "Present",
+          "data_type": "boolean"
+        },
+        {
+          "id": "target_lesions",
+          "name": "Target Lesions",
+          "data_type": "array",
+          "description": "List of measurable target lesions with locations and sizes"
+        }
+      ],
+      "extraction_hints": ["measurable", "RECIST", "target lesion", "non-target", "evaluable", "mm", "cm", "tumor size"]
+    },
+    {
+      "id": "organ_function",
+      "name": "Organ Function",
+      "description": "Key organ function parameters for eligibility",
+      "data_type": "object",
+      "json_field": "organ_function",
+      "sub_items": [
+        {
+          "id": "renal",
+          "name": "Renal Function",
+          "data_type": "object",
+          "sub_items": [
+            {"id": "creatinine", "name": "Creatinine (mg/dL)", "data_type": "number"},
+            {"id": "creatinine_clearance", "name": "CrCl (mL/min)", "data_type": "number"},
+            {"id": "egfr", "name": "eGFR (mL/min/1.73m2)", "data_type": "number"}
+          ]
+        },
+        {
+          "id": "hepatic",
+          "name": "Hepatic Function",
+          "data_type": "object",
+          "sub_items": [
+            {"id": "ast", "name": "AST (U/L)", "data_type": "number"},
+            {"id": "alt", "name": "ALT (U/L)", "data_type": "number"},
+            {"id": "bilirubin", "name": "Total Bilirubin (mg/dL)", "data_type": "number"},
+            {"id": "albumin", "name": "Albumin (g/dL)", "data_type": "number"},
+            {"id": "inr", "name": "INR", "data_type": "number"}
+          ]
+        },
+        {
+          "id": "hematologic",
+          "name": "Hematologic Function",
+          "data_type": "object",
+          "sub_items": [
+            {"id": "anc", "name": "ANC (cells/uL)", "data_type": "number"},
+            {"id": "platelets", "name": "Platelets (cells/uL)", "data_type": "number"},
+            {"id": "hemoglobin", "name": "Hemoglobin (g/dL)", "data_type": "number"}
+          ]
+        },
+        {
+          "id": "cardiac",
+          "name": "Cardiac Function",
+          "data_type": "object",
+          "sub_items": [
+            {"id": "lvef", "name": "LVEF (%)", "data_type": "number"},
+            {"id": "qtc", "name": "QTc (ms)", "data_type": "number"}
+          ]
+        }
+      ],
+      "extraction_hints": ["creatinine", "GFR", "AST", "ALT", "bilirubin", "ANC", "platelets", "hemoglobin", "LVEF", "QTc"]
+    },
+    {
+      "id": "prior_immunotherapy",
+      "name": "Prior Immunotherapy",
+      "description": "History of immunotherapy and immune-related adverse events",
+      "data_type": "object",
+      "json_field": "prior_immunotherapy",
+      "sub_items": [
+        {
+          "id": "received",
+          "name": "Prior IO Received",
+          "data_type": "boolean"
+        },
+        {
+          "id": "agents",
+          "name": "IO Agents",
+          "data_type": "array"
+        },
+        {
+          "id": "immune_adverse_events",
+          "name": "Immune-Related AEs",
+          "data_type": "array"
+        }
+      ],
+      "extraction_hints": ["pembrolizumab", "nivolumab", "ipilimumab", "atezolizumab", "durvalumab", "checkpoint inhibitor", "irAE", "immune-related"]
+    },
+    {
+      "id": "autoimmune_conditions",
+      "name": "Autoimmune Conditions",
+      "description": "History of autoimmune diseases",
+      "data_type": "array",
+      "json_field": "autoimmune_conditions",
+      "extraction_hints": ["autoimmune", "rheumatoid", "lupus", "psoriasis", "inflammatory bowel", "Crohn", "ulcerative colitis", "multiple sclerosis"]
+    },
+    {
+      "id": "recent_surgery",
+      "name": "Recent Surgery",
+      "description": "Recent surgical procedures that may affect eligibility",
+      "data_type": "object",
+      "json_field": "recent_surgery",
+      "sub_items": [
+        {
+          "id": "major_surgery_date",
+          "name": "Last Major Surgery Date",
+          "data_type": "date"
+        },
+        {
+          "id": "procedure_type",
+          "name": "Procedure Type",
+          "data_type": "string"
+        },
+        {
+          "id": "fully_healed",
+          "name": "Fully Healed",
+          "data_type": "boolean"
+        }
+      ],
+      "extraction_hints": ["surgery", "resection", "procedure", "postoperative", "wound healing"]
+    },
+    {
+      "id": "active_infections",
+      "name": "Active Infections",
+      "description": "Current active infections that may affect eligibility",
+      "data_type": "object",
+      "json_field": "active_infections",
+      "sub_items": [
+        {
+          "id": "hiv",
+          "name": "HIV Status",
+          "data_type": "object"
+        },
+        {
+          "id": "hepatitis_b",
+          "name": "Hepatitis B Status",
+          "data_type": "object"
+        },
+        {
+          "id": "hepatitis_c",
+          "name": "Hepatitis C Status",
+          "data_type": "object"
+        },
+        {
+          "id": "other_active",
+          "name": "Other Active Infections",
+          "data_type": "array"
+        }
+      ],
+      "extraction_hints": ["HIV", "hepatitis", "HBV", "HCV", "infection", "positive", "viral load"]
+    }
+  ]
+}

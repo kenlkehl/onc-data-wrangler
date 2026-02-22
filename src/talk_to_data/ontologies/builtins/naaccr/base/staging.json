@@ -1,0 +1,156 @@
+{
+  "category": "staging",
+  "description": "Staging data items including TNM, SEER Summary Stage, and EOD",
+  "naaccr_version": "25",
+  "items": [
+    {
+      "naaccr_item": "760",
+      "name": "TNM Edition Number",
+      "json_field": "naaccr_760_tnm_edition",
+      "human_readable_field": "ajcc_edition",
+      "description": "AJCC TNM edition used for staging",
+      "valid_codes": "07=7th edition, 08=8th edition, 09=9th edition, 88=Not applicable, 99=Unknown",
+      "data_type": "string",
+      "length": 2
+    },
+    {
+      "naaccr_item": "940",
+      "name": "TNM Clin T",
+      "json_field": "naaccr_940_tnm_clin_t",
+      "human_readable_field": "clinical_t",
+      "description": "Clinical T category",
+      "valid_codes": "cTX, cT0, cTis, cT1, cT1a, cT1b, cT1c, cT2, cT2a, cT2b, cT3, cT4, cT4a, cT4b, etc.",
+      "data_type": "string",
+      "length": 5
+    },
+    {
+      "naaccr_item": "950",
+      "name": "TNM Clin N",
+      "json_field": "naaccr_950_tnm_clin_n",
+      "human_readable_field": "clinical_n",
+      "description": "Clinical N category",
+      "valid_codes": "cNX, cN0, cN1, cN1a, cN1b, cN2, cN2a, cN2b, cN3, etc.",
+      "data_type": "string",
+      "length": 5
+    },
+    {
+      "naaccr_item": "960",
+      "name": "TNM Clin M",
+      "json_field": "naaccr_960_tnm_clin_m",
+      "human_readable_field": "clinical_m",
+      "description": "Clinical M category",
+      "valid_codes": "cM0, cM1, cM1a, cM1b, cM1c, pM1, etc.",
+      "data_type": "string",
+      "length": 5
+    },
+    {
+      "naaccr_item": "970",
+      "name": "TNM Clin Stage Group",
+      "json_field": "naaccr_970_tnm_clin_stage_group",
+      "human_readable_field": "clinical_stage_group",
+      "description": "Clinical stage group",
+      "valid_codes": "0, 0a, 0is, I, IA, IA1, IA2, IA3, IB, IB1, IB2, IC, II, IIA, IIB, IIC, III, IIIA, IIIB, IIIC, IV, IVA, IVB, IVC, OC (occult), etc.",
+      "data_type": "string",
+      "length": 5
+    },
+    {
+      "naaccr_item": "880",
+      "name": "TNM Path T",
+      "json_field": "naaccr_880_tnm_path_t",
+      "human_readable_field": "pathologic_t",
+      "description": "Pathologic T category",
+      "valid_codes": "pTX, pT0, pTis, pT1, pT1a, pT1b, pT1c, pT2, pT2a, pT2b, pT3, pT4, pT4a, pT4b, etc.",
+      "data_type": "string",
+      "length": 5
+    },
+    {
+      "naaccr_item": "890",
+      "name": "TNM Path N",
+      "json_field": "naaccr_890_tnm_path_n",
+      "human_readable_field": "pathologic_n",
+      "description": "Pathologic N category",
+      "valid_codes": "pNX, pN0, pN0(i+), pN0(mol+), pN1, pN1a, pN1b, pN1mi, pN2, pN2a, pN2b, pN3, etc.",
+      "data_type": "string",
+      "length": 5
+    },
+    {
+      "naaccr_item": "900",
+      "name": "TNM Path M",
+      "json_field": "naaccr_900_tnm_path_m",
+      "human_readable_field": "pathologic_m",
+      "description": "Pathologic M category",
+      "valid_codes": "pM0, pM1, pM1a, pM1b, pM1c (Note: M0 usually clinical only)",
+      "data_type": "string",
+      "length": 5
+    },
+    {
+      "naaccr_item": "910",
+      "name": "TNM Path Stage Group",
+      "json_field": "naaccr_910_tnm_path_stage_group",
+      "human_readable_field": "pathologic_stage_group",
+      "description": "Pathologic stage group",
+      "valid_codes": "Same as clinical stage group",
+      "data_type": "string",
+      "length": 5
+    },
+    {
+      "naaccr_item": "759",
+      "name": "SEER Summary Stage 2018",
+      "json_field": "naaccr_759_seer_summary_stage_2018",
+      "human_readable_field": "seer_summary_stage",
+      "description": "SEER Summary Stage 2018",
+      "valid_codes": "0=In situ, 1=Localized, 2=Regional by direct extension, 3=Regional lymph nodes, 4=Regional by both, 7=Distant, 8=Not applicable, 9=Unknown",
+      "data_type": "string",
+      "length": 1
+    },
+    {
+      "naaccr_item": "3000",
+      "name": "EOD Primary Tumor",
+      "json_field": "naaccr_3000_eod_primary_tumor",
+      "human_readable_field": "eod_primary_tumor",
+      "description": "Extent of Disease - Primary Tumor",
+      "valid_codes": "Schema-specific codes 000-999",
+      "data_type": "string",
+      "length": 3
+    },
+    {
+      "naaccr_item": "3001",
+      "name": "EOD Regional Nodes",
+      "json_field": "naaccr_3001_eod_regional_nodes",
+      "human_readable_field": "eod_regional_nodes",
+      "description": "Extent of Disease - Regional Nodes",
+      "valid_codes": "Schema-specific codes 000-999",
+      "data_type": "string",
+      "length": 3
+    },
+    {
+      "naaccr_item": "3002",
+      "name": "EOD Mets",
+      "json_field": "naaccr_3002_eod_mets",
+      "human_readable_field": "eod_mets",
+      "description": "Extent of Disease - Distant Metastasis",
+      "valid_codes": "00=No distant mets, 10-70=Site-specific distant mets, 99=Unknown",
+      "data_type": "string",
+      "length": 2
+    }
+  ],
+  "human_readable_mappings": {
+    "seer_summary_stage": {
+      "0": "In situ",
+      "1": "Localized",
+      "2": "Regional by direct extension",
+      "3": "Regional lymph nodes",
+      "4": "Regional by both direct extension and lymph nodes",
+      "7": "Distant",
+      "8": "Not applicable",
+      "9": "Unknown/Unstaged"
+    },
+    "ajcc_edition": {
+      "07": "7th",
+      "08": "8th",
+      "09": "9th",
+      "88": "Not applicable",
+      "99": "Unknown"
+    }
+  }
+}

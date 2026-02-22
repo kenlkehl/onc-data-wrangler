@@ -1,0 +1,224 @@
+{
+  "schema_id": "breast",
+  "schema_name": "Breast Cancer",
+  "applicable_years": "2018+",
+  "primary_site_codes": ["C500", "C501", "C502", "C503", "C504", "C505", "C506", "C508", "C509"],
+  "description": "Site-specific data items for breast cancer, AJCC 8th Edition. Includes hormone receptors, HER2 status, and genomic testing.",
+  "items": [
+    {
+      "naaccr_item": "3827",
+      "name": "Estrogen Receptor (ER) Summary",
+      "json_field": "naaccr_3827_er_summary",
+      "human_readable_field": "er_status",
+      "description": "Summary of estrogen receptor assay results",
+      "valid_codes": "0=ER Negative (<1%), 1=ER Positive, 7=Test ordered, results not in chart, 9=Unknown or not stated, ER not assessed",
+      "extraction_hints": ["estrogen receptor", "ER positive", "ER negative", "ER+", "ER-", "ER status"],
+      "clinical_significance": "ER+ predicts response to endocrine therapy (tamoxifen, aromatase inhibitors)",
+      "required_for_staging": true
+    },
+    {
+      "naaccr_item": "3828",
+      "name": "ER Percent Positive or Range",
+      "json_field": "naaccr_3828_er_percent",
+      "human_readable_field": "er_percent_positive",
+      "description": "Percentage of cells staining positive for ER",
+      "valid_codes": "000=Negative, 001-100=Percentage, R10=1-10%, R20=11-20%, etc., XX8=Not applicable, XX9=Unknown",
+      "extraction_hints": ["ER percentage", "ER %", "percent positive", "Allred"]
+    },
+    {
+      "naaccr_item": "3915",
+      "name": "Progesterone Receptor (PR) Summary",
+      "json_field": "naaccr_3915_pr_summary",
+      "human_readable_field": "pr_status",
+      "description": "Summary of progesterone receptor assay results",
+      "valid_codes": "0=PR Negative (<1%), 1=PR Positive, 7=Test ordered, 9=Unknown",
+      "extraction_hints": ["progesterone receptor", "PR positive", "PR negative", "PR+", "PR-", "PR status"],
+      "clinical_significance": "PR+ favorable prognostic factor",
+      "required_for_staging": true
+    },
+    {
+      "naaccr_item": "3916",
+      "name": "PR Percent Positive or Range",
+      "json_field": "naaccr_3916_pr_percent",
+      "human_readable_field": "pr_percent_positive",
+      "description": "Percentage of cells staining positive for PR",
+      "valid_codes": "000=Negative, 001-100=Percentage, XX8=Not applicable, XX9=Unknown",
+      "extraction_hints": ["PR percentage", "PR %"]
+    },
+    {
+      "naaccr_item": "3850",
+      "name": "HER2 IHC Summary",
+      "json_field": "naaccr_3850_her2_ihc_summary",
+      "human_readable_field": "her2_ihc_status",
+      "description": "HER2 immunohistochemistry test result",
+      "valid_codes": "0=Negative (0, 1+), 1=Equivocal (2+), 2=Positive (3+), 7=Test ordered, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["HER2 IHC", "HER2 0", "HER2 1+", "HER2 2+", "HER2 3+", "HER2 by immunohistochemistry"]
+    },
+    {
+      "naaccr_item": "3851",
+      "name": "HER2 ISH Summary",
+      "json_field": "naaccr_3851_her2_ish_summary",
+      "human_readable_field": "her2_ish_status",
+      "description": "HER2 in situ hybridization test result (FISH/CISH/SISH)",
+      "valid_codes": "0=Negative (not amplified), 1=Positive (amplified), 7=Test ordered, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["HER2 FISH", "HER2 ISH", "HER2 amplified", "HER2 not amplified", "FISH positive", "FISH negative"]
+    },
+    {
+      "naaccr_item": "3855",
+      "name": "HER2 Overall Summary",
+      "json_field": "naaccr_3855_her2_summary",
+      "human_readable_field": "her2_status",
+      "description": "Overall HER2 status combining IHC and ISH results",
+      "valid_codes": "0=Negative, 1=Positive, 2=Equivocal, 7=Test ordered, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["HER2 positive", "HER2 negative", "HER2+", "HER2-", "HER2 status"],
+      "clinical_significance": "HER2+ predicts response to trastuzumab, pertuzumab, T-DM1, T-DXd",
+      "required_for_staging": true
+    },
+    {
+      "naaccr_item": "3906",
+      "name": "Oncotype DX Recurrence Score - Invasive",
+      "json_field": "naaccr_3906_oncotype_dx_score",
+      "human_readable_field": "oncotype_dx_score",
+      "description": "Oncotype DX recurrence score for invasive breast cancer (0-100)",
+      "valid_codes": "000-100=Recurrence score value, XX6=Test performed, score not reported, XX7=Test ordered, XX8=Not applicable, XX9=Unknown",
+      "extraction_hints": ["Oncotype DX", "Oncotype", "recurrence score", "RS", "21-gene"],
+      "clinical_significance": "Score <26 generally favors omission of adjuvant chemotherapy in node-negative ER+ disease",
+      "required_for_staging": true
+    },
+    {
+      "naaccr_item": "3908",
+      "name": "Oncotype DX Risk Level - Invasive",
+      "json_field": "naaccr_3908_oncotype_dx_risk",
+      "human_readable_field": "oncotype_dx_risk_level",
+      "description": "Oncotype DX risk level categorization",
+      "valid_codes": "0=Low risk (RS <11 or <26 based on clinical trial), 1=Intermediate risk, 2=High risk (RS >=26), 6=Score stated as <11 or >=11, 7=Test ordered, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["low risk", "intermediate risk", "high risk", "Oncotype risk"]
+    },
+    {
+      "naaccr_item": "3907",
+      "name": "Oncotype DX Recurrence Score - DCIS",
+      "json_field": "naaccr_3907_oncotype_dx_dcis",
+      "human_readable_field": "oncotype_dx_dcis_score",
+      "description": "Oncotype DX DCIS score for ductal carcinoma in situ",
+      "valid_codes": "000-100=Score, XX7=Test ordered, XX8=Not applicable, XX9=Unknown",
+      "extraction_hints": ["DCIS score", "Oncotype DCIS"]
+    },
+    {
+      "naaccr_item": "3903",
+      "name": "Multigene Signature Method",
+      "json_field": "naaccr_3903_multigene_method",
+      "human_readable_field": "multigene_assay_type",
+      "description": "Type of multigene signature test performed",
+      "valid_codes": "1=Oncotype DX, 2=MammaPrint, 3=PAM50/Prosigna, 4=EndoPredict, 5=Breast Cancer Index, 6=Other, 7=Test ordered, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["Oncotype", "MammaPrint", "Prosigna", "PAM50", "EndoPredict", "Breast Cancer Index"]
+    },
+    {
+      "naaccr_item": "3904",
+      "name": "Multigene Signature Results",
+      "json_field": "naaccr_3904_multigene_results",
+      "human_readable_field": "multigene_result_category",
+      "description": "Risk category from multigene signature test",
+      "valid_codes": "0=Low risk, 1=Intermediate risk, 2=High risk, 6=Results available category not stated, 7=Test ordered, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["low genomic risk", "high genomic risk", "MammaPrint low", "MammaPrint high"]
+    },
+    {
+      "naaccr_item": "3818",
+      "name": "Ki-67",
+      "json_field": "naaccr_3818_ki67",
+      "human_readable_field": "ki67_percentage",
+      "description": "Ki-67 proliferation index percentage",
+      "valid_codes": "000-100=Percentage, XX7=Test ordered, XX8=Not applicable, XX9=Unknown",
+      "extraction_hints": ["Ki-67", "Ki67", "MIB-1", "proliferation index", "proliferative index"],
+      "clinical_significance": "High Ki-67 (>20%) may indicate more aggressive disease"
+    },
+    {
+      "naaccr_item": "3935",
+      "name": "Tumor Size Summary",
+      "json_field": "naaccr_3935_tumor_size",
+      "human_readable_field": "tumor_size_mm",
+      "description": "Size of primary tumor in millimeters",
+      "valid_codes": "Numeric in mm (001-989), 990=990+ mm, 998=Not applicable, 999=Unknown",
+      "extraction_hints": ["tumor size", "mass measuring", "cm", "mm", "greatest dimension"]
+    },
+    {
+      "naaccr_item": "3882",
+      "name": "LN Positive Axillary Level I-II",
+      "json_field": "naaccr_3882_ln_positive_axillary",
+      "human_readable_field": "axillary_nodes_positive",
+      "description": "Number of positive axillary lymph nodes (levels I-II)",
+      "valid_codes": "00=None positive, 01-89=Number positive, 90=90+, 95=Positive aspiration only, 97=Positive NOS, 98=Not examined, 99=Unknown",
+      "extraction_hints": ["positive axillary", "axillary nodes positive", "lymph node positive"]
+    },
+    {
+      "naaccr_item": "3883",
+      "name": "Sentinel Lymph Nodes Examined",
+      "json_field": "naaccr_3883_sln_examined",
+      "human_readable_field": "sentinel_nodes_examined",
+      "description": "Number of sentinel lymph nodes examined",
+      "valid_codes": "00-89=Number examined, 90=90+, 95=No SLN procedure, 98=Not applicable, 99=Unknown",
+      "extraction_hints": ["sentinel lymph node", "SLN", "SLNB", "sentinel node biopsy"]
+    },
+    {
+      "naaccr_item": "3884",
+      "name": "Sentinel Lymph Nodes Positive",
+      "json_field": "naaccr_3884_sln_positive",
+      "human_readable_field": "sentinel_nodes_positive",
+      "description": "Number of positive sentinel lymph nodes",
+      "valid_codes": "00=None positive, 01-89=Number positive, 90=90+, 95=Positive aspiration, 97=Positive NOS, 98=Not examined, 99=Unknown",
+      "extraction_hints": ["positive sentinel", "SLN positive"]
+    },
+    {
+      "naaccr_item": "3820",
+      "name": "LVI (Lymphovascular Invasion)",
+      "json_field": "naaccr_3820_lvi",
+      "human_readable_field": "lymphovascular_invasion",
+      "description": "Presence of lymphovascular invasion",
+      "valid_codes": "0=Not present/Not identified, 1=Present/Identified, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["lymphovascular invasion", "LVI", "angiolymphatic invasion", "vascular invasion"]
+    }
+  ],
+  "derived_fields": [
+    {
+      "name": "Molecular Subtype",
+      "json_field": "molecular_subtype",
+      "description": "Molecular subtype derived from ER, PR, HER2, and Ki-67 status",
+      "derivation_rules": {
+        "Luminal A": "ER+ and/or PR+, HER2-, low Ki-67 (<20%)",
+        "Luminal B (HER2-)": "ER+ and/or PR+, HER2-, high Ki-67 (>=20%)",
+        "Luminal B (HER2+)": "ER+ and/or PR+, HER2+",
+        "HER2-enriched": "ER-, PR-, HER2+",
+        "Triple Negative/Basal-like": "ER-, PR-, HER2-"
+      }
+    }
+  ],
+  "example_output": {
+    "schema_id": "breast",
+    "site_specific_factors": {
+      "naaccr_3827_er_summary": "1",
+      "er_status": "Positive",
+      "er_percent_positive": "95%",
+      "naaccr_3915_pr_summary": "1",
+      "pr_status": "Positive",
+      "pr_percent_positive": "80%",
+      "naaccr_3855_her2_summary": "0",
+      "her2_status": "Negative",
+      "her2_ihc_status": "1+ (Negative)",
+      "her2_ish_status": null,
+      "naaccr_3906_oncotype_dx_score": "18",
+      "oncotype_dx_score": 18,
+      "naaccr_3908_oncotype_dx_risk": "0",
+      "oncotype_dx_risk_level": "Low risk",
+      "naaccr_3818_ki67": "12",
+      "ki67_percentage": "12%",
+      "molecular_subtype": "Luminal A",
+      "naaccr_3935_tumor_size": "22",
+      "tumor_size_mm": 22,
+      "naaccr_3884_sln_positive": "01",
+      "sentinel_nodes_positive": 1,
+      "naaccr_3883_sln_examined": "03",
+      "sentinel_nodes_examined": 3,
+      "naaccr_3820_lvi": "0",
+      "lymphovascular_invasion": "Not identified"
+    }
+  }
+}

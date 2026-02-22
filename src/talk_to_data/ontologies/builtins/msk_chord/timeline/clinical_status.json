@@ -1,0 +1,68 @@
+{
+  "category_id": "clinical_status",
+  "category_name": "Clinical Status",
+  "description": "ECOG/KPS performance status and disease-free status timeline",
+  "items": [
+    {
+      "id": "ecog_date",
+      "name": "ECOG Date",
+      "description": "Date of ECOG/KPS assessment",
+      "data_type": "date",
+      "column_name": "START_DATE"
+    },
+    {
+      "id": "ecog_kps_score",
+      "name": "ECOG-KPS Score",
+      "description": "Performance status (0-4, with 4 being poorest)",
+      "data_type": "integer",
+      "column_name": "ECOG_KPS",
+      "valid_values": {
+        "0": "Fully active, no restrictions",
+        "1": "Restricted in strenuous activity",
+        "2": "Ambulatory, capable of self-care",
+        "3": "Limited self-care, confined >50% of waking hours",
+        "4": "Completely disabled"
+      }
+    },
+    {
+      "id": "disease_free_status",
+      "name": "Disease-Free Status",
+      "description": "Windows of disease-free status from radiology (min 6 months)",
+      "data_type": "string",
+      "column_name": "CANCER_PRESENCE",
+      "valid_values": {
+        "Disease Free": "No evidence of disease",
+        "Disease Present": "Evidence of disease"
+      },
+      "nlp_derived": true
+    },
+    {
+      "id": "disease_free_start",
+      "name": "Disease-Free Start Date",
+      "description": "Start of disease-free window",
+      "data_type": "date",
+      "column_name": "START_DATE"
+    },
+    {
+      "id": "disease_free_end",
+      "name": "Disease-Free End Date",
+      "description": "End of disease-free window",
+      "data_type": "date",
+      "column_name": "STOP_DATE"
+    },
+    {
+      "id": "bmi_date",
+      "name": "BMI Date",
+      "description": "Date of BMI measurement",
+      "data_type": "date",
+      "column_name": "START_DATE"
+    },
+    {
+      "id": "bmi_value",
+      "name": "BMI Value",
+      "description": "Body Mass Index measurement",
+      "data_type": "number",
+      "column_name": "BMI"
+    }
+  ]
+}

@@ -1,0 +1,182 @@
+{
+  "category": "cancer_diagnosis",
+  "description": "Cancer diagnosis dataset variables from PRISSMM/GENIE BPC (per-diagnosis)",
+  "per_diagnosis": true,
+  "items": [
+    {
+      "id": "ca_seq",
+      "name": "Cancer Sequence Number",
+      "description": "Sequence number for multiple primaries (0=first cancer)",
+      "data_type": "integer",
+      "json_field": "ca_seq"
+    },
+    {
+      "id": "ca_dx_days",
+      "name": "Days to Cancer Diagnosis",
+      "description": "Days from index date to this cancer diagnosis",
+      "data_type": "integer",
+      "json_field": "ca_dx_days"
+    },
+    {
+      "id": "ca_type",
+      "name": "Cancer Type",
+      "description": "Type of cancer diagnosis",
+      "data_type": "string",
+      "json_field": "ca_type"
+    },
+    {
+      "id": "naaccr_histology_code",
+      "name": "Histology Code (NAACCR)",
+      "description": "ICD-O-3 histology code",
+      "data_type": "string",
+      "json_field": "naaccr_histology_code"
+    },
+    {
+      "id": "ca_hist_adeno_squamous",
+      "name": "Histology - Adeno vs Squamous",
+      "description": "Histologic classification",
+      "data_type": "string",
+      "json_field": "ca_hist_adeno_squamous",
+      "valid_values": {
+        "Adenocarcinoma": "Adenocarcinoma",
+        "Squamous cell carcinoma": "Squamous cell carcinoma",
+        "Large cell carcinoma": "Large cell carcinoma",
+        "Other NSCLC": "Other non-small cell",
+        "Small cell carcinoma": "Small cell carcinoma"
+      }
+    },
+    {
+      "id": "naaccr_primary_site",
+      "name": "Primary Site (NAACCR)",
+      "description": "ICD-O-3 topography code for primary site",
+      "data_type": "string",
+      "json_field": "naaccr_primary_site"
+    },
+    {
+      "id": "ca_stage",
+      "name": "Stage at Diagnosis",
+      "description": "AJCC stage at diagnosis",
+      "data_type": "string",
+      "json_field": "ca_stage",
+      "valid_values": {
+        "I": "Stage I",
+        "IA": "Stage IA",
+        "IB": "Stage IB",
+        "II": "Stage II",
+        "IIA": "Stage IIA",
+        "IIB": "Stage IIB",
+        "III": "Stage III",
+        "IIIA": "Stage IIIA",
+        "IIIB": "Stage IIIB",
+        "IIIC": "Stage IIIC",
+        "IV": "Stage IV",
+        "IVA": "Stage IVA",
+        "IVB": "Stage IVB"
+      }
+    },
+    {
+      "id": "ca_tnm_t",
+      "name": "TNM T Stage",
+      "description": "Tumor stage component",
+      "data_type": "string",
+      "json_field": "ca_tnm_t"
+    },
+    {
+      "id": "ca_tnm_n",
+      "name": "TNM N Stage",
+      "description": "Node stage component",
+      "data_type": "string",
+      "json_field": "ca_tnm_n"
+    },
+    {
+      "id": "ca_tnm_m",
+      "name": "TNM M Stage",
+      "description": "Metastasis stage component",
+      "data_type": "string",
+      "json_field": "ca_tnm_m"
+    },
+    {
+      "id": "ca_dmets_yn",
+      "name": "Distant Metastases Present",
+      "description": "Whether distant metastases were present at diagnosis",
+      "data_type": "string",
+      "json_field": "ca_dmets_yn",
+      "valid_values": {
+        "Yes": "Distant metastases present",
+        "No": "No distant metastases"
+      }
+    },
+    {
+      "id": "dmets_brain",
+      "name": "Brain Metastases",
+      "description": "Brain metastases at diagnosis",
+      "data_type": "integer",
+      "json_field": "dmets_brain",
+      "valid_values": {"0": "No", "1": "Yes"}
+    },
+    {
+      "id": "dmets_bone",
+      "name": "Bone Metastases",
+      "description": "Bone metastases at diagnosis",
+      "data_type": "integer",
+      "json_field": "dmets_bone",
+      "valid_values": {"0": "No", "1": "Yes"}
+    },
+    {
+      "id": "dmets_liver",
+      "name": "Liver Metastases",
+      "description": "Liver metastases at diagnosis",
+      "data_type": "integer",
+      "json_field": "dmets_liver",
+      "valid_values": {"0": "No", "1": "Yes"}
+    },
+    {
+      "id": "dmets_lung",
+      "name": "Lung Metastases",
+      "description": "Lung metastases (contralateral or if primary is non-lung)",
+      "data_type": "integer",
+      "json_field": "dmets_lung",
+      "valid_values": {"0": "No", "1": "Yes"}
+    },
+    {
+      "id": "dmets_lymph",
+      "name": "Distant Lymph Node Metastases",
+      "description": "Distant lymph node metastases",
+      "data_type": "integer",
+      "json_field": "dmets_lymph",
+      "valid_values": {"0": "No", "1": "Yes"}
+    },
+    {
+      "id": "dmets_adrenal",
+      "name": "Adrenal Metastases",
+      "description": "Adrenal gland metastases",
+      "data_type": "integer",
+      "json_field": "dmets_adrenal",
+      "valid_values": {"0": "No", "1": "Yes"}
+    },
+    {
+      "id": "dmets_pleura",
+      "name": "Pleural Metastases",
+      "description": "Pleural metastases or effusion",
+      "data_type": "integer",
+      "json_field": "dmets_pleura",
+      "valid_values": {"0": "No", "1": "Yes"}
+    },
+    {
+      "id": "dmets_peritoneum",
+      "name": "Peritoneal Metastases",
+      "description": "Peritoneal carcinomatosis",
+      "data_type": "integer",
+      "json_field": "dmets_peritoneum",
+      "valid_values": {"0": "No", "1": "Yes"}
+    },
+    {
+      "id": "dmets_other",
+      "name": "Other Metastatic Sites",
+      "description": "Other sites of distant metastases",
+      "data_type": "integer",
+      "json_field": "dmets_other",
+      "valid_values": {"0": "No", "1": "Yes"}
+    }
+  ]
+}

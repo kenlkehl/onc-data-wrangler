@@ -1,0 +1,101 @@
+{
+  "category": "demographics",
+  "description": "Patient demographic data items from NAACCR Standards",
+  "naaccr_version": "25",
+  "items": [
+    {
+      "naaccr_item": "220",
+      "name": "Sex",
+      "json_field": "naaccr_220_sex",
+      "human_readable_field": "sex_at_birth",
+      "description": "Patient's sex at birth",
+      "valid_codes": "1=Male, 2=Female, 3=Other, 4=Transsexual NOS, 9=Unknown",
+      "data_type": "string",
+      "length": 1
+    },
+    {
+      "naaccr_item": "240",
+      "name": "Date of Birth",
+      "json_field": "naaccr_240_date_of_birth",
+      "human_readable_field": "date_of_birth",
+      "description": "Patient's date of birth in YYYYMMDD format",
+      "valid_codes": "YYYYMMDD format, use 99 for unknown day/month",
+      "data_type": "date",
+      "length": 8
+    },
+    {
+      "naaccr_item": "250",
+      "name": "Age at Diagnosis",
+      "json_field": "naaccr_250_age_at_diagnosis",
+      "human_readable_field": "age_at_diagnosis",
+      "description": "Age in complete years at time of diagnosis",
+      "valid_codes": "000-120, 999=Unknown",
+      "data_type": "integer",
+      "length": 3
+    },
+    {
+      "naaccr_item": "160",
+      "name": "Race 1",
+      "json_field": "naaccr_160_race1",
+      "human_readable_field": "race",
+      "description": "Primary race of the patient",
+      "valid_codes": "01=White, 02=Black, 03=American Indian/Alaska Native, 04=Chinese, 05=Japanese, 06=Filipino, 07=Hawaiian, 08=Korean, 10=Vietnamese, 11=Laotian, 12=Hmong, 13=Kampuchean, 14=Thai, 15=Asian Indian/Pakistani, 16=Asian Other, 17=Pacific Islander NOS, 20=Micronesian, 21=Chamorran, 22=Guamanian NOS, 25=Polynesian NOS, 26=Tahitian, 27=Samoan, 28=Tongan, 30=Melanesian NOS, 31=Fiji Islander, 32=New Guinean, 96=Other Asian, 97=Pacific Islander NOS, 98=Other, 99=Unknown",
+      "data_type": "string",
+      "length": 2
+    },
+    {
+      "naaccr_item": "190",
+      "name": "Spanish/Hispanic Origin",
+      "json_field": "naaccr_190_spanish_hispanic_origin",
+      "human_readable_field": "ethnicity",
+      "description": "Whether the patient is of Spanish/Hispanic origin",
+      "valid_codes": "0=Non-Spanish/Non-Hispanic, 1=Mexican, 2=Puerto Rican, 3=Cuban, 4=South/Central American, 5=Other Spanish/Hispanic, 6=Spanish NOS, 7=Spanish surname only, 8=Dominican Republic, 9=Unknown",
+      "data_type": "string",
+      "length": 1
+    },
+    {
+      "naaccr_item": "170",
+      "name": "Birthplace--Country",
+      "json_field": "naaccr_170_birthplace_country",
+      "human_readable_field": "birthplace_country",
+      "description": "Country of birth",
+      "valid_codes": "ISO 3166 country codes",
+      "data_type": "string",
+      "length": 3
+    }
+  ],
+  "human_readable_mappings": {
+    "sex": {
+      "1": "Male",
+      "2": "Female",
+      "3": "Other",
+      "4": "Transsexual NOS",
+      "9": "Unknown"
+    },
+    "race": {
+      "01": "White",
+      "02": "Black or African American",
+      "03": "American Indian or Alaska Native",
+      "04": "Chinese",
+      "05": "Japanese",
+      "06": "Filipino",
+      "07": "Native Hawaiian",
+      "08": "Korean",
+      "10": "Vietnamese",
+      "15": "Asian Indian or Pakistani",
+      "16": "Other Asian",
+      "17": "Pacific Islander NOS",
+      "98": "Other",
+      "99": "Unknown"
+    },
+    "ethnicity": {
+      "0": "Not Hispanic or Latino",
+      "1": "Mexican",
+      "2": "Puerto Rican",
+      "3": "Cuban",
+      "4": "South or Central American",
+      "5": "Other Hispanic or Latino",
+      "9": "Unknown"
+    }
+  }
+}

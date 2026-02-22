@@ -1,0 +1,202 @@
+{
+  "schema_id": "prostate",
+  "schema_name": "Prostate Cancer",
+  "applicable_years": "2018+",
+  "primary_site_codes": ["C619"],
+  "description": "Site-specific data items for prostate cancer, AJCC 8th Edition. Includes PSA, Gleason scoring, and grade groups.",
+  "items": [
+    {
+      "naaccr_item": "3920",
+      "name": "PSA (Prostatic Specific Antigen) Lab Value",
+      "json_field": "naaccr_3920_psa_lab_value",
+      "human_readable_field": "psa_value",
+      "description": "PSA lab value at diagnosis (ng/mL)",
+      "valid_codes": "Numeric XX.X (0.1-999.9), XXX.X=1000+ ng/mL, XX0.1=Value stated as less than 0.1, XX9.8=Test not done, XX9.9=Unknown",
+      "extraction_hints": ["PSA", "prostate specific antigen", "ng/mL", "PSA level"],
+      "clinical_significance": "PSA affects AJCC stage grouping. PSA <10, 10-20, >20 correspond to different risk levels",
+      "required_for_staging": true
+    },
+    {
+      "naaccr_item": "3838",
+      "name": "Gleason Patterns Clinical",
+      "json_field": "naaccr_3838_gleason_patterns_clin",
+      "human_readable_field": "gleason_patterns_clinical",
+      "description": "Gleason primary and secondary patterns from needle biopsy or TURP (two-digit code: primary + secondary)",
+      "valid_codes": "33=3+3, 34=3+4, 43=4+3, 44=4+4, 35=3+5, 53=5+3, 45=4+5, 54=5+4, 55=5+5, X8=Not applicable, X9=Unknown",
+      "extraction_hints": ["Gleason", "Gleason pattern", "biopsy Gleason", "3+3", "3+4", "4+3", "4+4", "4+5", "5+4"],
+      "required_for_staging": true
+    },
+    {
+      "naaccr_item": "3839",
+      "name": "Gleason Patterns Pathological",
+      "json_field": "naaccr_3839_gleason_patterns_path",
+      "human_readable_field": "gleason_patterns_pathological",
+      "description": "Gleason primary and secondary patterns from radical prostatectomy or autopsy",
+      "valid_codes": "Same as clinical patterns, derived from prostatectomy specimen",
+      "extraction_hints": ["prostatectomy Gleason", "final path Gleason", "surgical Gleason"]
+    },
+    {
+      "naaccr_item": "3840",
+      "name": "Gleason Score Clinical",
+      "json_field": "naaccr_3840_gleason_score_clin",
+      "human_readable_field": "gleason_score_clinical",
+      "description": "Gleason score (sum of patterns) from needle biopsy or TURP",
+      "valid_codes": "02-10=Gleason sum, X8=Not applicable, X9=Unknown",
+      "extraction_hints": ["Gleason score", "Gleason sum", "Gleason 6", "Gleason 7", "Gleason 8", "Gleason 9", "Gleason 10"],
+      "clinical_significance": "Higher Gleason score indicates more aggressive cancer",
+      "required_for_staging": true
+    },
+    {
+      "naaccr_item": "3841",
+      "name": "Gleason Score Pathological",
+      "json_field": "naaccr_3841_gleason_score_path",
+      "human_readable_field": "gleason_score_pathological",
+      "description": "Gleason score from radical prostatectomy or autopsy",
+      "valid_codes": "02-10=Gleason sum, X8=Not applicable, X9=Unknown",
+      "extraction_hints": ["prostatectomy Gleason score"]
+    },
+    {
+      "naaccr_item": "3842",
+      "name": "Gleason Tertiary Pattern",
+      "json_field": "naaccr_3842_gleason_tertiary",
+      "human_readable_field": "gleason_tertiary_pattern",
+      "description": "Tertiary Gleason pattern from prostatectomy (if present)",
+      "valid_codes": "03-05=Tertiary pattern value, X5=No tertiary pattern, X8=Not applicable, X9=Unknown",
+      "extraction_hints": ["tertiary pattern", "tertiary Gleason"],
+      "clinical_significance": "Presence of high tertiary pattern may indicate worse prognosis"
+    },
+    {
+      "naaccr_item": "3814",
+      "name": "Grade Clinical",
+      "json_field": "naaccr_3814_grade_clinical",
+      "human_readable_field": "grade_group_clinical",
+      "description": "ISUP Grade Group based on clinical Gleason score",
+      "valid_codes": "1=Grade Group 1 (Gleason 6), 2=Grade Group 2 (Gleason 3+4=7), 3=Grade Group 3 (Gleason 4+3=7), 4=Grade Group 4 (Gleason 8), 5=Grade Group 5 (Gleason 9-10), 9=Cannot be assessed",
+      "extraction_hints": ["grade group", "ISUP grade", "Grade Group 1", "Grade Group 2", "Grade Group 3", "Grade Group 4", "Grade Group 5"],
+      "clinical_significance": "Grade Group correlates with prognosis and treatment recommendations"
+    },
+    {
+      "naaccr_item": "3815",
+      "name": "Grade Pathological",
+      "json_field": "naaccr_3815_grade_pathological",
+      "human_readable_field": "grade_group_pathological",
+      "description": "ISUP Grade Group from prostatectomy specimen",
+      "valid_codes": "Same as Grade Clinical",
+      "extraction_hints": ["pathological grade group", "prostatectomy grade"]
+    },
+    {
+      "naaccr_item": "3924",
+      "name": "Number of Cores Positive",
+      "json_field": "naaccr_3924_cores_positive",
+      "human_readable_field": "biopsy_cores_positive",
+      "description": "Number of biopsy cores positive for carcinoma",
+      "valid_codes": "00-99=Number of positive cores, X8=Not applicable, X9=Unknown",
+      "extraction_hints": ["cores positive", "positive cores", "of 12 cores", "of 14 cores"]
+    },
+    {
+      "naaccr_item": "3925",
+      "name": "Number of Cores Examined",
+      "json_field": "naaccr_3925_cores_examined",
+      "human_readable_field": "biopsy_cores_examined",
+      "description": "Total number of prostate biopsy cores examined",
+      "valid_codes": "00-99=Number of cores, X8=Not applicable, X9=Unknown",
+      "extraction_hints": ["cores examined", "total cores", "12 cores", "14 cores"]
+    },
+    {
+      "naaccr_item": "3926",
+      "name": "Percent Cores Positive",
+      "json_field": "naaccr_3926_cores_percent_positive",
+      "human_readable_field": "biopsy_cores_percent_positive",
+      "description": "Percentage of biopsy cores positive for carcinoma",
+      "valid_codes": "000-100=Percentage, XX8=Not applicable, XX9=Unknown",
+      "extraction_hints": ["percent cores positive", "percent positive"]
+    },
+    {
+      "naaccr_item": "3921",
+      "name": "Perineural Invasion",
+      "json_field": "naaccr_3921_perineural_invasion",
+      "human_readable_field": "perineural_invasion",
+      "description": "Presence of perineural invasion",
+      "valid_codes": "0=Not identified/Not present, 1=Present/Identified, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["perineural invasion", "PNI"]
+    },
+    {
+      "naaccr_item": "3922",
+      "name": "Extraprostatic Extension",
+      "json_field": "naaccr_3922_extraprostatic_extension",
+      "human_readable_field": "extraprostatic_extension",
+      "description": "Presence of extraprostatic extension on prostatectomy",
+      "valid_codes": "0=Not present, 1=Focal (established), 2=Non-focal (extensive), 3=Present NOS, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["extraprostatic extension", "EPE", "extracapsular extension", "beyond capsule"]
+    },
+    {
+      "naaccr_item": "3923",
+      "name": "Seminal Vesicle Invasion",
+      "json_field": "naaccr_3923_seminal_vesicle_invasion",
+      "human_readable_field": "seminal_vesicle_invasion",
+      "description": "Presence of seminal vesicle invasion",
+      "valid_codes": "0=Not present, 1=Present, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["seminal vesicle invasion", "SVI", "seminal vesicle involvement"]
+    }
+  ],
+  "additional_biomarkers_to_extract": [
+    {
+      "name": "Decipher Genomic Score",
+      "json_field": "decipher_score",
+      "description": "Decipher genomic classifier score (0-1)",
+      "extraction_hints": ["Decipher", "genomic classifier", "GC score"]
+    },
+    {
+      "name": "BRCA1/2 Status",
+      "json_field": "brca_status",
+      "description": "BRCA1/2 germline mutation status",
+      "extraction_hints": ["BRCA1", "BRCA2", "BRCA mutation", "HRR deficiency"]
+    },
+    {
+      "name": "MSI Status",
+      "json_field": "msi_status",
+      "description": "Microsatellite instability status",
+      "extraction_hints": ["MSI", "microsatellite", "MSI-H", "dMMR"]
+    }
+  ],
+  "derived_fields": [
+    {
+      "name": "NCCN Risk Group",
+      "json_field": "nccn_risk_group",
+      "description": "NCCN risk stratification",
+      "derivation_rules": {
+        "Very Low": "T1c, Grade Group 1, PSA <10, <3 positive cores, <=50% core involvement",
+        "Low": "T1-T2a, Grade Group 1, PSA <10",
+        "Favorable Intermediate": "1 intermediate factor (T2b-T2c OR Grade Group 2-3 OR PSA 10-20), Grade Group 1-2, <50% positive cores",
+        "Unfavorable Intermediate": "2-3 intermediate factors OR Grade Group 3 OR >=50% positive cores",
+        "High": "T3a OR Grade Group 4-5 OR PSA >20",
+        "Very High": "T3b-T4 OR Primary Gleason 5 OR >4 cores Grade Group 4-5"
+      }
+    }
+  ],
+  "example_output": {
+    "schema_id": "prostate",
+    "site_specific_factors": {
+      "naaccr_3920_psa_lab_value": "8.5",
+      "psa_value": 8.5,
+      "psa_interpretation": "Normal to mildly elevated",
+      "naaccr_3838_gleason_patterns_clin": "34",
+      "gleason_patterns_clinical": "3+4",
+      "naaccr_3840_gleason_score_clin": "07",
+      "gleason_score_clinical": 7,
+      "naaccr_3814_grade_clinical": "2",
+      "grade_group_clinical": "Grade Group 2",
+      "naaccr_3841_gleason_score_path": null,
+      "gleason_score_pathological": null,
+      "naaccr_3924_cores_positive": "04",
+      "biopsy_cores_positive": 4,
+      "naaccr_3925_cores_examined": "12",
+      "biopsy_cores_examined": 12,
+      "naaccr_3926_cores_percent_positive": "33",
+      "biopsy_cores_percent_positive": "33%",
+      "naaccr_3921_perineural_invasion": "1",
+      "perineural_invasion": "Present",
+      "nccn_risk_group": "Favorable Intermediate"
+    }
+  }
+}

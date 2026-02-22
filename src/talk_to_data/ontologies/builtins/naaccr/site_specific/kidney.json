@@ -1,0 +1,171 @@
+{
+  "schema_id": "kidney",
+  "schema_name": "Kidney/Renal Cell Cancer",
+  "applicable_years": "2018+",
+  "primary_site_codes": ["C649"],
+  "description": "Site-specific data items for kidney/renal cell carcinoma, AJCC 8th Edition. Includes grade and histologic features.",
+  "items": [
+    {
+      "naaccr_item": "3919",
+      "name": "ISUP/WHO Grade (2017+)",
+      "json_field": "naaccr_3919_isup_grade",
+      "human_readable_field": "isup_who_grade",
+      "description": "ISUP/WHO nuclear grade for clear cell and papillary RCC",
+      "valid_codes": "1=Grade 1, 2=Grade 2, 3=Grade 3, 4=Grade 4, 8=Not applicable (chromophobe, other histology), 9=Unknown",
+      "extraction_hints": ["ISUP grade", "WHO grade", "nuclear grade", "Fuhrman", "grade 1", "grade 2", "grade 3", "grade 4"],
+      "clinical_significance": "Higher grade associated with worse prognosis",
+      "required_for_staging": true
+    },
+    {
+      "naaccr_item": "3869",
+      "name": "Fuhrman Nuclear Grade (Historical)",
+      "json_field": "naaccr_3869_fuhrman_grade",
+      "human_readable_field": "fuhrman_grade",
+      "description": "Fuhrman nuclear grade (historical, replaced by ISUP/WHO)",
+      "valid_codes": "1=Grade 1, 2=Grade 2, 3=Grade 3, 4=Grade 4, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["Fuhrman", "Fuhrman grade"],
+      "note": "Fuhrman grading replaced by ISUP/WHO grading in 2017"
+    },
+    {
+      "naaccr_item": "3930",
+      "name": "Sarcomatoid Features",
+      "json_field": "naaccr_3930_sarcomatoid",
+      "human_readable_field": "sarcomatoid_features",
+      "description": "Presence and extent of sarcomatoid differentiation",
+      "valid_codes": "000=No sarcomatoid features, 001-100=Percentage of sarcomatoid component, XX8=Not applicable, XX9=Unknown",
+      "extraction_hints": ["sarcomatoid", "sarcomatoid differentiation", "sarcomatoid component"],
+      "clinical_significance": "Sarcomatoid features indicate aggressive behavior"
+    },
+    {
+      "naaccr_item": "3931",
+      "name": "Rhabdoid Features",
+      "json_field": "naaccr_3931_rhabdoid",
+      "human_readable_field": "rhabdoid_features",
+      "description": "Presence of rhabdoid differentiation",
+      "valid_codes": "0=No rhabdoid features, 1=Rhabdoid features present, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["rhabdoid", "rhabdoid differentiation", "rhabdoid features"],
+      "clinical_significance": "Rhabdoid features indicate aggressive behavior"
+    },
+    {
+      "naaccr_item": "3887",
+      "name": "Tumor Necrosis",
+      "json_field": "naaccr_3887_necrosis",
+      "human_readable_field": "tumor_necrosis",
+      "description": "Presence of tumor necrosis",
+      "valid_codes": "0=No necrosis, 1=Necrosis present (focal), 2=Necrosis present (extensive), 3=Necrosis present NOS, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["necrosis", "tumor necrosis", "coagulative necrosis"],
+      "clinical_significance": "Tumor necrosis associated with worse prognosis"
+    },
+    {
+      "naaccr_item": "3888",
+      "name": "Renal Vein Involvement",
+      "json_field": "naaccr_3888_renal_vein",
+      "human_readable_field": "renal_vein_involvement",
+      "description": "Involvement of renal vein",
+      "valid_codes": "0=No renal vein involvement, 1=Renal vein involvement (microscopic), 2=Renal vein involvement (gross), 3=Renal vein involvement NOS, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["renal vein", "vein involvement", "venous invasion"]
+    },
+    {
+      "naaccr_item": "3889",
+      "name": "IVC Tumor Thrombus",
+      "json_field": "naaccr_3889_ivc_thrombus",
+      "human_readable_field": "ivc_tumor_thrombus",
+      "description": "Inferior vena cava tumor thrombus",
+      "valid_codes": "0=No IVC involvement, 1=Below diaphragm, 2=Above diaphragm, below right atrium, 3=Extends into right atrium, 4=IVC involvement NOS, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["IVC", "vena cava", "caval thrombus", "tumor thrombus"],
+      "clinical_significance": "IVC involvement affects staging and surgical approach"
+    },
+    {
+      "naaccr_item": "3886",
+      "name": "Perinephric Fat Invasion",
+      "json_field": "naaccr_3886_perinephric_fat",
+      "human_readable_field": "perinephric_fat_invasion",
+      "description": "Invasion of perinephric fat",
+      "valid_codes": "0=No perinephric fat invasion, 1=Perinephric fat invasion present, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["perinephric fat", "perirenal fat", "fat invasion"]
+    },
+    {
+      "naaccr_item": "3885",
+      "name": "Adrenal Gland Involvement",
+      "json_field": "naaccr_3885_adrenal",
+      "human_readable_field": "adrenal_gland_involvement",
+      "description": "Involvement of ipsilateral adrenal gland",
+      "valid_codes": "0=No adrenal involvement, 1=Direct invasion of adrenal, 2=Separate adrenal metastasis, 3=Both direct invasion and metastasis, 8=Not applicable, 9=Unknown",
+      "extraction_hints": ["adrenal", "adrenal gland", "adrenal invasion"]
+    },
+    {
+      "naaccr_item": "3890",
+      "name": "Histologic Subtype",
+      "json_field": "naaccr_3890_histology",
+      "human_readable_field": "histologic_subtype",
+      "description": "Histologic subtype of renal cell carcinoma",
+      "valid_codes": "1=Clear cell, 2=Papillary type 1, 3=Papillary type 2, 4=Chromophobe, 5=Collecting duct, 6=Medullary, 7=Unclassified, 8=Other specified, 9=Unknown",
+      "extraction_hints": ["clear cell", "papillary", "chromophobe", "collecting duct", "medullary", "unclassified"]
+    }
+  ],
+  "additional_biomarkers_to_extract": [
+    {
+      "name": "PD-L1 Expression",
+      "json_field": "pdl1_status",
+      "description": "PD-L1 expression status",
+      "extraction_hints": ["PD-L1", "PDL1"]
+    },
+    {
+      "name": "VHL Mutation Status",
+      "json_field": "vhl_status",
+      "description": "VHL gene mutation status (relevant for clear cell RCC)",
+      "extraction_hints": ["VHL", "von Hippel-Lindau"]
+    },
+    {
+      "name": "BAP1 Status",
+      "json_field": "bap1_status",
+      "description": "BAP1 expression/mutation status",
+      "extraction_hints": ["BAP1", "BAP1 loss"]
+    },
+    {
+      "name": "PBRM1 Status",
+      "json_field": "pbrm1_status",
+      "description": "PBRM1 mutation status",
+      "extraction_hints": ["PBRM1"]
+    }
+  ],
+  "derived_fields": [
+    {
+      "name": "IMDC Risk Category",
+      "json_field": "imdc_risk_category",
+      "description": "International Metastatic RCC Database Consortium risk category",
+      "derivation_rules": {
+        "Favorable": "0 risk factors",
+        "Intermediate": "1-2 risk factors",
+        "Poor": "3+ risk factors"
+      },
+      "risk_factors": [
+        "Time from diagnosis to treatment <1 year",
+        "Karnofsky performance status <80%",
+        "Hemoglobin < lower limit of normal",
+        "Corrected calcium > upper limit of normal",
+        "Neutrophils > upper limit of normal",
+        "Platelets > upper limit of normal"
+      ]
+    }
+  ],
+  "example_output": {
+    "schema_id": "kidney",
+    "site_specific_factors": {
+      "naaccr_3919_isup_grade": "2",
+      "isup_who_grade": "Grade 2",
+      "naaccr_3930_sarcomatoid": "000",
+      "sarcomatoid_features": "None",
+      "naaccr_3931_rhabdoid": "0",
+      "rhabdoid_features": "None",
+      "naaccr_3887_necrosis": "0",
+      "tumor_necrosis": "None",
+      "naaccr_3888_renal_vein": "0",
+      "renal_vein_involvement": "None",
+      "naaccr_3889_ivc_thrombus": "0",
+      "ivc_tumor_thrombus": "None",
+      "naaccr_3890_histology": "1",
+      "histologic_subtype": "Clear cell"
+    }
+  }
+}

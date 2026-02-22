@@ -1,0 +1,75 @@
+# Talk-to-Data Project Configuration
+# Copy and edit this file for your project.
+
+project:
+  name: "my_study"
+  input_dir: /path/to/source/data      # Source CSVs, parquets, clinical notes
+  output_dir: /path/to/output           # Extractions, database, metadata
+
+# --- Extraction: Unstructured text extraction from clinical notes ---
+extraction:
+  llm:
+    provider: openai           # "openai" (vLLM-compatible), "anthropic", "vertex"
+    model: gpt-oss-120b        # Model name on your vLLM server
+    base_url: http://localhost:8000/v1
+    api_key: none              # Or set OPENAI_API_KEY env var
+    max_tokens: 16384
+    temperature: 0.0
+  ontology_ids:
+    - naaccr                   # Available: naaccr, prissmm, omop, matchminer_ai, msk_chord
+  cancer_type: generic         # Or specific: lung, breast, colorectal, etc.
+  chunk_tokens: 40000
+  overlap_tokens: 200
+  max_retries: 10
+  patient_workers: 8
+  checkpoint_interval: 50
+  patient_id_column: record_id
+  notes_text_column: text
+  notes_date_column: date
+  notes_type_column: note_type
+
+# --- Database: DuckDB creation settings ---
+database:
+  record_id_prefix: patient    # Prefix for de-identified patient IDs
+  min_non_missing: 10          # Drop columns with fewer non-null values
+  forbidden_output_columns:
+    - record_id                # Columns that must never appear in query output
+
+# --- Query: MCP server settings ---
+query:
+  min_cell_size: 10            # Suppress counts below this threshold
+  max_query_rows: 500          # Maximum rows returned per query
+  max_output_fraction: 0.5     # Guard against row-level output
+  mcp_host: 127.0.0.1
+  mcp_port: 8000
+
+# --- Chatbot: Web interface settings ---
+chatbot:
+  llm:
+    provider: anthropic        # "anthropic" or "vertex"
+    model: claude-opus-4-6
+    # For Vertex AI, set ANTHROPIC_VERTEX_PROJECT_ID env var
+    # vertex_project: my-project
+    # vertex_region: us-east5
+  mcp_url: http://127.0.0.1:8000/mcp
+  mcp_token: ""
+  max_agent_turns: 75
+  host: 0.0.0.0
+  port: 8080
+
+# --- Field Mappings: Map structured data columns to ontology fields ---
+# These can be discovered interactively using `talk-to-data discover`
+# or configured manually here.
+field_mappings:
+  # diagnosis:
+  #   - source: SITE_CD
+  #     target: primary_site
+  #   - source: HISTOLOGY_DESC
+  #     target: histology
+  #     transform: lowercase
+  # biomarker:
+  #   - source: BIOMARKER_NAME
+  #     target: biomarker_tested
+  #     value_map:
+  #       PDL1: PD-L1
+  #       PDLI: PD-L1

@@ -1,0 +1,49 @@
+{
+  "category_id": "radiation",
+  "category_name": "Radiation Oncology",
+  "description": "Timeline of radiation therapy treatments",
+  "items": [
+    {
+      "id": "radiation_start_date",
+      "name": "Start Date",
+      "description": "Date radiation treatment started",
+      "data_type": "date",
+      "column_name": "START_DATE"
+    },
+    {
+      "id": "radiation_end_date",
+      "name": "End Date",
+      "description": "Date radiation treatment ended",
+      "data_type": "date",
+      "column_name": "STOP_DATE"
+    },
+    {
+      "id": "radiation_site",
+      "name": "Treatment Site",
+      "description": "Anatomic site of radiation treatment",
+      "data_type": "string",
+      "column_name": "TREATMENT_SITE"
+    },
+    {
+      "id": "radiation_dose",
+      "name": "Total Dose",
+      "description": "Total radiation dose (cGy)",
+      "data_type": "number",
+      "column_name": "TOTAL_DOSE"
+    },
+    {
+      "id": "radiation_fractions",
+      "name": "Number of Fractions",
+      "description": "Number of radiation fractions",
+      "data_type": "integer",
+      "column_name": "NUM_FRACTIONS"
+    },
+    {
+      "id": "radiation_technique",
+      "name": "Technique",
+      "description": "Radiation technique used",
+      "data_type": "string",
+      "column_name": "TECHNIQUE"
+    }
+  ]
+}
