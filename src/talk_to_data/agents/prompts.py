@@ -212,6 +212,11 @@ Proceed through these stages IN ORDER. After each stage, write or update the
 YAML config file with the settings decided so far.
 
 ### Stage 1: Project Basics
+**CRITICAL: Do NOT use any tools (Bash, Glob, Grep, Read, etc.) until you have
+asked the user all Stage 1 questions and received their answers.** Your very
+first response must be a text message asking the user for the missing
+information listed below. Never start with data exploration.
+
 - If data paths, output directory, or config file path were NOT provided
   (the initial message will indicate what's missing), ask the user for them
   FIRST before doing anything else:

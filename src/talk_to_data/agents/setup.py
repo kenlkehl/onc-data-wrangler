@@ -3,6 +3,7 @@
 Walks users through configuring a Talk-to-Data project by exploring
 their source data, asking questions, and writing the YAML config file.
 """
+import asyncio
 import logging
 import os
 import sys
@@ -24,23 +25,27 @@ ONTOLOGY_DESCRIPTIONS = {
 }
 
 
-def _print_message(message):
-    """Print assistant text blocks to stdout.
-
-    Returns the text that was printed (empty string if nothing printed).
-    """
-    from claude_agent_sdk.types import AssistantMessage, TextBlock
-    if not isinstance(message, AssistantMessage):
-        return ""
-    printed = ""
-    for block in message.content:
-        if isinstance(block, TextBlock):
-            print(block.text, flush=True)
-            printed += block.text
-    return printed
-
-
 def run_setup_agent(
+    data_paths: list[str] | None = None,
+    output_dir: str | None = None,
+    config_path: str | None = None,
+    max_turns: int = 80,
+    max_budget_usd: float = DEFAULT_MAX_BUDGET_USD,
+) -> Optional[str]:
+    """Run the interactive setup agent (sync wrapper).
+
+    See _run_setup_agent_async for details.
+    """
+    return asyncio.run(_run_setup_agent_async(
+        data_paths=data_paths,
+        output_dir=output_dir,
+        config_path=config_path,
+        max_turns=max_turns,
+        max_budget_usd=max_budget_usd,
+    ))
+
+
+async def _run_setup_agent_async(
     data_paths: list[str] | None = None,
     output_dir: str | None = None,
     config_path: str | None = None,
@@ -100,8 +105,11 @@ def run_setup_agent(
         prompt_parts.append(f"**Config file path**: {config_path}\n")
         prompt_parts.append(f"\n**Available ontologies**:\n{ontology_list}\n\n")
         prompt_parts.append(
-            "Please walk me through the setup process step by step, "
-            "exploring my data files and writing the config YAML as we go."
+            "IMPORTANT: Before exploring any data files, first complete Stage 1 "
+            "(Project Basics). Ask me for any missing information — project name, "
+            "output directory, etc. — and confirm everything with me before "
+            "proceeding to data exploration. Do NOT use any tools until you have "
+            "asked me your Stage 1 questions."
         )
         initial_prompt = "\n".join(prompt_parts)
     else:
@@ -143,11 +151,15 @@ def run_setup_agent(
     all_streamed_texts = []
 
     try:
-        # Send initial prompt and receive streaming response
-        for message in client.connect(initial_prompt):
+        # Connect and send initial prompt
+        await client.connect(initial_prompt)
+
+        # Receive streaming response to initial prompt
+        async for message in client.receive_response():
             if isinstance(message, AssistantMessage):
                 for block in message.content:
                     if isinstance(block, TextBlock):
+                        print(block.text, flush=True)
                         all_streamed_texts.append(block.text)
             elif isinstance(message, ResultMessage):
                 last_result_message = message
@@ -156,19 +168,19 @@ def run_setup_agent(
                     "ResultMessage: subtype=%s, is_error=%s, result_len=%d, num_turns=%d",
                     message.subtype, message.is_error, len(message.result or ""), message.num_turns,
                 )
-                break
 
         if last_result_message is None:
             # Bidirectional conversation loop
-            all_streamed = "".join(all_streamed_texts)
             while True:
                 try:
-                    user_input = input("> ")
+                    user_input = await asyncio.to_thread(input, "> ")
                 except (EOFError, KeyboardInterrupt):
                     break
 
                 all_streamed_texts = []
-                for message in client.query(user_input):
+                await client.query(user_input)
+
+                async for message in client.receive_response():
                     if isinstance(message, AssistantMessage):
                         for block in message.content:
                             if isinstance(block, TextBlock):
@@ -178,31 +190,10 @@ def run_setup_agent(
                         last_result_message = message
                         result_text = message.result
 
-                        # Print any part of result not already streamed
-                        extra = result_text or ""
-                        all_streamed = "".join(all_streamed_texts)
-                        if extra and all_streamed:
-                            idx = extra.find(all_streamed)
-                            if idx >= 0:
-                                before = extra[:idx]
-                                after = extra[idx + len(all_streamed):]
-                                if after.strip():
-                                    logger.debug("Printing %d extra trailing chars from ResultMessage.result", len(after))
-                                    print(after, flush=True)
-                                if before.strip():
-                                    logger.debug("Printing %d extra leading chars from ResultMessage.result", len(before))
-                            else:
-                                logger.debug(
-                                    "ResultMessage.result (%d chars) could not be matched against streamed text (%d chars); printing in full",
-                                    len(extra), len(all_streamed),
-                                )
-                                print(extra, flush=True)
-                        break
-
                 if last_result_message is not None:
                     break
     finally:
-        client.disconnect()
+        await client.disconnect()
 
     if last_result_message:
         _log_usage(last_result_message)
