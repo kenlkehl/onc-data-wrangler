@@ -151,27 +151,33 @@ def _run_cohort(config: ProjectConfig):
         else:
             logger.warning("Diagnosis file not found: %s", coh.diagnosis_file)
 
-    # Load demographics file if specified
-    demographics_df = None
-    if coh.demographics_file:
-        demo_path = config.find_file(coh.demographics_file)
+    # Load demographics files
+    demographics_dfs = []
+    demo_file_list = list(coh.demographics_files) if coh.demographics_files else []
+    # Legacy single-file fallback
+    if not demo_file_list and coh.demographics_file:
+        demo_file_list = [coh.demographics_file]
+
+    for demo_filename in demo_file_list:
+        demo_path = config.find_file(demo_filename)
         if demo_path and demo_path.exists():
             if demo_path.suffix == ".parquet":
-                demographics_df = pd.read_parquet(demo_path)
+                demo_df = pd.read_parquet(demo_path)
             else:
-                demographics_df = pd.read_csv(demo_path, low_memory=False)
-            logger.info("Loaded demographics file %s: %d rows", demo_path.name, len(demographics_df))
+                demo_df = pd.read_csv(demo_path, low_memory=False)
+            logger.info("Loaded demographics file %s: %d rows", demo_path.name, len(demo_df))
             # Rename patient ID column to match cohort patient_id_column
-            demo_pid = config.get_patient_id_column(coh.demographics_file)
-            if demo_pid != coh.patient_id_column and demo_pid in demographics_df.columns:
-                demographics_df = demographics_df.rename(columns={demo_pid: coh.patient_id_column})
-                logger.info("Renamed patient ID column '%s' -> '%s' in %s", demo_pid, coh.patient_id_column, coh.demographics_file)
+            demo_pid = config.get_patient_id_column(demo_filename)
+            if demo_pid != coh.patient_id_column and demo_pid in demo_df.columns:
+                demo_df = demo_df.rename(columns={demo_pid: coh.patient_id_column})
+                logger.info("Renamed patient ID column '%s' -> '%s' in %s", demo_pid, coh.patient_id_column, demo_filename)
+            demographics_dfs.append(demo_df)
         else:
-            logger.warning("Demographics file not found: %s", coh.demographics_file)
+            logger.warning("Demographics file not found: %s", demo_filename)
 
     # Build cohort
     builder = CohortBuilder(cohort_config)
-    cohort_df = builder.build_from_dataframes(patient_df, diagnosis_df, demographics_df)
+    cohort_df = builder.build_from_dataframes(patient_df, diagnosis_df, demographics_dfs=demographics_dfs or None)
 
     # Save
     output_path = output_dir / "cohort.parquet"

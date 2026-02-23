@@ -68,6 +68,10 @@ class MatchMinerAIOntology(OntologyBase):
     def version(self) -> str:
         return '1.0.0'
 
+    @property
+    def description(self) -> str:
+        return 'Clinical trial matching concepts'
+
     def __init__(self):
         """Initialize and load concept definitions."""
         self._concepts = self._load_all_concepts()

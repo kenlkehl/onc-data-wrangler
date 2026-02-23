@@ -44,7 +44,8 @@ class CohortStageConfig:
     """Configuration for the cohort definition stage."""
     patient_file: Optional[str] = None
     diagnosis_file: Optional[str] = None
-    demographics_file: Optional[str] = None
+    demographics_file: Optional[str] = None  # single file (legacy)
+    demographics_files: list = field(default_factory=list)  # multiple files
     patient_id_column: str = "record_id"
     diagnosis_code_column: Optional[str] = None
     diagnosis_code_filter: list = field(default_factory=list)
@@ -289,6 +290,9 @@ def load_config(path: str) -> ProjectConfig:
     if coh:
         known_coh = {f.name for f in CohortStageConfig.__dataclass_fields__.values()}
         config.cohort = CohortStageConfig(**{k: v for k, v in coh.items() if k in known_coh})
+        # Promote legacy demographics_file into demographics_files if needed
+        if config.cohort.demographics_file and not config.cohort.demographics_files:
+            config.cohort.demographics_files = [config.cohort.demographics_file]
 
     # Extraction
     ext = raw.get("extraction", {})

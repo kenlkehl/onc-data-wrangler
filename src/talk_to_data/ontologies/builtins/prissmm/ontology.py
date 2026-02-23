@@ -124,6 +124,10 @@ class PRISSMMOntology(OntologyBase):
     def version(self) -> str:
         return '2.0.0'
 
+    @property
+    def description(self) -> str:
+        return 'GENIE BPC clinical data model with site-specific extensions'
+
     def get_base_items(self) -> List[DataCategory]:
         """Get base PRISSMM data categories."""
         categories = []

@@ -62,6 +62,10 @@ class GenericCancerOntology(OntologyBase):
     def version(self) -> str:
         return '1.0.0'
 
+    @property
+    def description(self) -> str:
+        return 'Cancer-type-agnostic extraction fields (diagnosis, biomarker, treatment, surgery, radiation, burden, social history)'
+
     def get_base_items(self) -> List[DataCategory]:
         """Load base data items from JSON files."""
         categories = []

@@ -62,6 +62,11 @@ class OntologyBase(ABC):
         """Version string for this ontology implementation."""
         ...
 
+    @property
+    def description(self) -> str:
+        """Short description for display in setup/selection UI."""
+        return self.display_name
+
     @abstractmethod
     def get_base_items(self) -> List[DataCategory]:
         """Get base data items that apply to all cancer types."""

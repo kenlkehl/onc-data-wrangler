@@ -182,6 +182,10 @@ class NAACCROntology(OntologyBase):
     def version(self) -> str:
         return '25.0'
 
+    @property
+    def description(self) -> str:
+        return 'North American cancer registry fields with site-specific items'
+
     def get_base_items(self) -> List[DataCategory]:
         """Load base NAACCR data items from JSON files."""
         categories = []

@@ -85,6 +85,10 @@ class MSKChordOntology(OntologyBase):
     def version(self) -> str:
         return '2023.12'
 
+    @property
+    def description(self) -> str:
+        return 'MSK oncology data model with timeline events'
+
     def get_base_items(self) -> List[DataCategory]:
         """Get patient-level MSK-CHORD items."""
         categories = []

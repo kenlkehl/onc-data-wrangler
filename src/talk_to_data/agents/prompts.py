@@ -114,7 +114,8 @@ project:
 cohort:
   patient_file: "<filename>"       # CSV/parquet found in input_paths
   diagnosis_file: "<filename>"     # Optional: file with diagnosis codes for filtering
-  demographics_file: "<filename>"  # Optional: file with demographics if not in patient_file
+  demographics_files:               # Optional: one or more files with demographics
+    - "<filename>"                  # Each is left-joined; later files fill missing values
   patient_id_column: record_id     # Column with patient/record IDs
   diagnosis_code_column: null      # Column with ICD/diagnosis codes
   diagnosis_code_filter: []        # ICD code prefixes to include (e.g. ["C34", "C45"])
@@ -137,7 +138,7 @@ extraction:
     gpus: [0, 1, 2, 3]            # GPU IDs to use; pipeline launches servers automatically
     gpus_per_server: 1             # GPUs per server instance (>1 for tensor parallelism)
     base_port: 29500               # First server listens here; subsequent servers use +1, +2, …
-    extra_args: {}                 # Extra vLLM CLI flags (e.g. {max_model_len: 32768})
+    extra_args: {{}}                 # Extra vLLM CLI flags (e.g. {{max_model_len: 32768}})
   notes_paths:                     # Paths to directories/files containing clinical notes
     - "<path_or_dir>"
   ontology_ids:
@@ -189,14 +190,7 @@ patient_id_columns:                # Per-file patient ID column overrides (optio
 
 ## Available Ontologies
 
-| ID | Name | Description |
-|---|---|---|
-| naaccr | NAACCR v25 | North American cancer registry fields with site-specific items |
-| pan_top | Pan-TOP | Thoracic oncology (lung, mesothelioma, thymus) -- DFCI Pan-TOP schema |
-| prissmm | PRISSMM | GENIE BPC clinical data model with site-specific extensions |
-| omop | OMOP CDM | OMOP Common Data Model oncology extension |
-| matchminer_ai | MatchMiner-AI | Clinical trial matching concepts |
-| msk_chord | MSK-CHORD | MSK oncology data model with timeline events |
+{ontology_table}
 
 ## CRITICAL PRIVACY RULES
 
@@ -262,14 +256,26 @@ information listed below. Never start with data exploration.
   ID columns to the standard name before processing.
 - **Search ALL source files** in input_paths for demographic columns
   (sex, race, ethnicity, birth date, death date, death indicator).
-  Demographics may be in the patient roster file itself, or in a
-  separate file. Check every CSV/parquet file for these columns.
-- If demographics are found in a file OTHER than the patient_file,
-  set `cohort.demographics_file` to that filename. The pipeline will
-  automatically merge demographics from the separate file into the
-  cohort. The demographic column names (sex_column, race_column, etc.)
-  should reference columns as they appear in whichever file contains
-  them.
+  Demographics may be in the patient roster file itself, or spread
+  across MULTIPLE files. Check every CSV/parquet file for these columns.
+- If demographics are found in files OTHER than the patient_file,
+  list them ALL in `cohort.demographics_files` (a YAML list). The
+  pipeline left-joins each file in order; later files fill in missing
+  values without overwriting earlier ones. This means you can pull
+  sex/birth/death from one file and race/ethnicity from another.
+  The demographic column names (sex_column, race_column, etc.) should
+  reference columns as they appear in whichever file contains them.
+  Example:
+  ```yaml
+  cohort:
+    demographics_files:
+      - PT_INFO_STATUS_REGISTRATION.csv
+      - DEMOGRAPHICS_REGISTRATION.csv
+    sex_column: GENDER_NM
+    birth_date_column: BIRTH_DT
+    race_column: IDM_RACE_NM
+    ethnicity_column: HISPANIC_IND
+  ```
 - If no demographic columns are found in any file, inform the user
   that the cohort will lack demographics (sex, race, etc.) and the
   database will not include these fields. Ask if they have another
@@ -280,7 +286,7 @@ information listed below. Never start with data exploration.
 - If diagnosis codes are found, ask about inclusion/exclusion criteria
   (e.g., which ICD codes or site codes to filter on).
 - Write settings to the `cohort` section of the YAML (patient_file,
-  diagnosis_file, demographics_file, patient_id_column, demographic
+  diagnosis_file, demographics_files, patient_id_column, demographic
   columns, diagnosis filtering). Downstream extraction and
   harmonization stages will automatically filter to only cohort
   patients.

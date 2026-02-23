@@ -95,6 +95,10 @@ class OMOPOntology(OntologyBase):
     def version(self) -> str:
         return '5.4.0'
 
+    @property
+    def description(self) -> str:
+        return 'OMOP Common Data Model oncology extension'
+
     def get_base_items(self) -> List[DataCategory]:
         """Get person-level OMOP items."""
         categories = []

@@ -46,13 +46,22 @@ class CohortBuilder:
         self.config = config or CohortConfig()
         self.original_ids = None
 
-    def build_from_dataframes(self, patient_df: pd.DataFrame, diagnosis_df: Optional[pd.DataFrame] = None, demographics_df: Optional[pd.DataFrame] = None) -> pd.DataFrame:
+    def build_from_dataframes(
+        self,
+        patient_df: pd.DataFrame,
+        diagnosis_df: Optional[pd.DataFrame] = None,
+        demographics_df: Optional[pd.DataFrame] = None,
+        demographics_dfs: Optional[list[pd.DataFrame]] = None,
+    ) -> pd.DataFrame:
         """Build cohort from one or more source DataFrames.
 
         Args:
             patient_df: Primary patient table with IDs and optionally demographics.
             diagnosis_df: Optional diagnosis table for filtering.
-            demographics_df: Optional demographics table to merge.
+            demographics_df: Optional single demographics table (legacy).
+            demographics_dfs: Optional list of demographics tables to merge.
+                Each is left-joined in order; later files fill in missing
+                values without overwriting earlier ones.
 
         Returns:
             Standardized cohort DataFrame.
@@ -71,9 +80,29 @@ class CohortBuilder:
             cohort = cohort[cohort[pid].isin(filtered_ids)]
             logger.info("Cohort size after filtering: %d patients", len(cohort))
 
-        # Merge demographics from separate table if provided
-        if demographics_df is not None:
-            cohort = cohort.merge(demographics_df, on=pid, how="left")
+        # Merge demographics from multiple tables if provided
+        all_demo_dfs = list(demographics_dfs or [])
+        if demographics_df is not None and not all_demo_dfs:
+            # Legacy single-file path
+            all_demo_dfs = [demographics_df]
+
+        for i, demo_df in enumerate(all_demo_dfs):
+            new_cols = [c for c in demo_df.columns if c != pid and c not in cohort.columns]
+            if new_cols:
+                # Columns not yet in cohort — simple left join
+                cohort = cohort.merge(demo_df[[pid] + new_cols].drop_duplicates(subset=[pid]), on=pid, how="left")
+                logger.info("Merged %d new columns from demographics source %d", len(new_cols), i + 1)
+            # For columns already in cohort, fill missing values from this source
+            overlap_cols = [c for c in demo_df.columns if c != pid and c in cohort.columns]
+            if overlap_cols:
+                temp = demo_df[[pid] + overlap_cols].drop_duplicates(subset=[pid])
+                cohort = cohort.merge(temp, on=pid, how="left", suffixes=("", "_fill"))
+                for col in overlap_cols:
+                    fill_col = col + "_fill"
+                    if fill_col in cohort.columns:
+                        cohort[col] = cohort[col].fillna(cohort[fill_col])
+                        cohort = cohort.drop(columns=[fill_col])
+                logger.info("Filled %d overlapping columns from demographics source %d", len(overlap_cols), i + 1)
 
         # Merge demographic columns from patient table
         demo_cols = []
@@ -98,12 +127,22 @@ class CohortBuilder:
 
         return cohort.reset_index(drop=True)
 
-    def build_from_files(self, patient_file: str, diagnosis_file: Optional[str] = None, demographics_file: Optional[str] = None) -> pd.DataFrame:
+    def build_from_files(
+        self,
+        patient_file: str,
+        diagnosis_file: Optional[str] = None,
+        demographics_file: Optional[str] = None,
+        demographics_files: Optional[list[str]] = None,
+    ) -> pd.DataFrame:
         """Build cohort from CSV/parquet files."""
         patient_df = _read_file(patient_file)
         diagnosis_df = _read_file(diagnosis_file) if diagnosis_file else None
-        demographics_df = _read_file(demographics_file) if demographics_file else None
-        return self.build_from_dataframes(patient_df, diagnosis_df, demographics_df)
+        demographics_dfs = None
+        if demographics_files:
+            demographics_dfs = [_read_file(f) for f in demographics_files]
+        elif demographics_file:
+            demographics_dfs = [_read_file(demographics_file)]
+        return self.build_from_dataframes(patient_df, diagnosis_df, demographics_dfs=demographics_dfs)
 
     def _standardize_columns(self, df: pd.DataFrame) -> pd.DataFrame:
         """Rename source columns to standardized names."""

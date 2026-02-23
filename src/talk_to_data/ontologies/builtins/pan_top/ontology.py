@@ -114,6 +114,10 @@ class PanTOPOntology(OntologyBase):
     def version(self) -> str:
         return '1.0.0'
 
+    @property
+    def description(self) -> str:
+        return 'Thoracic oncology (lung, mesothelioma, thymus) -- DFCI Pan-TOP schema'
+
     def get_base_items(self) -> List[DataCategory]:
         """Load base Pan-TOP data items from JSON files."""
         categories = []
