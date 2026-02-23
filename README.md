@@ -8,7 +8,7 @@ privacy-safe analytical database, and exposes it through an interactive chatbot.
 ## Features
 
 - **Interactive setup**: Agent-guided project configuration that explores your data, identifies columns, finds demographics, and proposes a database schema
-- **Ontology-driven extraction**: Define what to extract using pluggable ontology schemas (NAACCR, PRISSMM, OMOP, MatchMiner-AI, MSK-CHORD, Pan-TOP)
+- **Ontology-driven extraction**: Define what to extract using pluggable ontology schemas (NAACCR, PRISSMM, OMOP, MatchMiner-AI, MSK-CHORD, Pan-TOP, Generic Cancer)
 - **Chunked extraction**: Process long patient note histories with iterative LLM extraction and checkpointing
 - **Structured harmonization**: Map existing structured dataset columns to ontology fields
 - **Date de-identification**: All dates are converted to intervals since birth (years) and calendar years; raw dates are removed from the final database
@@ -123,6 +123,7 @@ suggest ontology field mappings you can add to your project config.
 | `matchminer_ai` | MatchMiner-AI clinical trial matching concepts |
 | `msk_chord` | MSK-CHORD oncology data model |
 | `pan_top` | Pan-TOP thoracic oncology data extraction (cancer diagnosis, biomarkers, systemic therapy, surgery, radiation, burden, smoking history) |
+| `generic_cancer` | Cancer-type-agnostic extraction covering diagnosis, biomarkers, systemic therapy, surgery, radiation, burden, and social history across all cancer types |
 
 ## Project Configuration
 
