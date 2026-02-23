@@ -64,4 +64,4 @@ Valid stages (for `--stages` flag): `cohort`, `prepare_notes`, `extract`, `harmo
 
 ## Available Ontologies
 
-naaccr, prissmm, omop, matchminer_ai, msk_chord, pan_top
+naaccr, prissmm, omop, matchminer_ai, msk_chord, pan_top, generic_cancer

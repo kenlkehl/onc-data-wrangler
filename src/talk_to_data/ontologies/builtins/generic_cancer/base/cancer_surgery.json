@@ -1,0 +1,27 @@
+{
+  "category": "cancer_surgery",
+  "description": "Cancer surgical procedures performed on the patient.",
+  "items": [
+    {
+      "name": "Surgery Type",
+      "json_field": "surgery_type",
+      "description": "Type of surgical procedure performed",
+      "data_type": "string",
+      "extraction_hints": ["mastectomy", "lumpectomy", "colectomy", "hemicolectomy", "prostatectomy", "nephrectomy", "partial nephrectomy", "cystectomy", "hysterectomy", "craniotomy", "lobectomy", "wedge resection", "segmentectomy", "pneumonectomy", "gastrectomy", "pancreatectomy", "Whipple", "hepatectomy", "thyroidectomy", "lymph node dissection", "sentinel node biopsy", "wide local excision", "Mohs surgery", "orchiectomy", "oophorectomy", "salpingo-oophorectomy", "laryngectomy", "esophagectomy", "VATS", "robotic", "laparoscopic", "open", "resection", "debulking"]
+    },
+    {
+      "name": "Surgery Site",
+      "json_field": "surgery_site",
+      "description": "Anatomical site of surgery",
+      "data_type": "string",
+      "extraction_hints": ["breast", "colon", "rectum", "prostate", "kidney", "bladder", "lung", "brain", "liver", "pancreas", "stomach", "ovary", "uterus", "cervix", "thyroid", "skin", "lymph node", "axilla", "groin", "neck", "mediastinum", "retroperitoneum", "bone", "soft tissue"]
+    },
+    {
+      "name": "Surgery Date",
+      "json_field": "surgery_date",
+      "description": "Date of surgery, as specific as is known. Format YYYY-MM-DD when possible.",
+      "data_type": "date",
+      "extraction_hints": ["surgery date", "operative date", "operation date", "underwent"]
+    }
+  ]
+}

@@ -57,7 +57,7 @@ class OntologyRegistry:
     @classmethod
     def auto_discover(cls):
         """Auto-discover ontologies in the builtins directory."""
-        ontology_packages = ('naaccr', 'matchminer_ai', 'prissmm', 'omop', 'msk_chord', 'pan_top')
+        ontology_packages = ('naaccr', 'matchminer_ai', 'prissmm', 'omop', 'msk_chord', 'pan_top', 'generic_cancer')
         for package_name in ontology_packages:
             try:
                 importlib.import_module(f".builtins.{package_name}", package="talk_to_data.ontologies")

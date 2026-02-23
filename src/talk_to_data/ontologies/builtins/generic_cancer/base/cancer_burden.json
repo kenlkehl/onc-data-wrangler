@@ -1,0 +1,35 @@
+{
+  "category": "cancer_burden",
+  "description": "Cancer burden and disease status assessments. Progression/worsening should only be called if the tumor is growing. If burden_type is cancer_site, add another cancer_site subfield to specify the location.",
+  "items": [
+    {
+      "name": "Burden Assessor Type",
+      "json_field": "burden_assessor_type",
+      "description": "Type of clinician making the assessment (e.g., radiologist, oncologist)",
+      "data_type": "string",
+      "extraction_hints": ["radiologist", "oncologist", "imaging", "clinical assessment"]
+    },
+    {
+      "name": "Burden Assessment Date",
+      "json_field": "burden_assessment_date",
+      "description": "Date of the burden assessment. Format YYYY-MM-DD when possible.",
+      "data_type": "date",
+      "extraction_hints": ["assessment date", "scan date", "imaging date"]
+    },
+    {
+      "name": "Burden Type",
+      "json_field": "burden_type",
+      "description": "Type of burden assessment result: response/improvement, progression/worsening, or cancer_site",
+      "data_type": "string",
+      "valid_codes": "response/improvement, progression/worsening, cancer_site",
+      "extraction_hints": ["response", "improvement", "progression", "worsening", "stable", "partial response", "complete response", "progressive disease"]
+    },
+    {
+      "name": "Cancer Site",
+      "json_field": "cancer_site",
+      "description": "Location of cancer burden when burden_type is cancer_site (e.g., brain, bone, liver, lung, adrenal, lymph_node, peritoneum, pleura)",
+      "data_type": "string",
+      "extraction_hints": ["metastasis", "metastatic site", "lesion in", "involvement of"]
+    }
+  ]
+}
