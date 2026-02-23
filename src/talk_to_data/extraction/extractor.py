@@ -101,7 +101,7 @@ class Extractor:
         prompt = instructions + FIRST_CHUNK_SUFFIX.format(chunk_text=text)
         response = self.llm_client.generate(prompt, max_tokens=max_tokens)
         parsed = parse_json_list(response.text)
-        return parsed
+        return parsed if parsed is not None else []
 
     def extract_iterative(self, texts: list[str], cancer_type: Optional[str] = None, max_tokens: Optional[int] = 8000, max_retries: int = 3) -> list[dict]:
         """Extract from multiple text chunks iteratively.
@@ -153,8 +153,12 @@ class Extractor:
         return running
 
 
-def parse_json_list(text: str) -> list[dict]:
-    """Best-effort parse of a JSON array from LLM output."""
+def parse_json_list(text: str) -> list[dict] | None:
+    """Best-effort parse of a JSON array from LLM output.
+
+    Returns None on failure so callers can distinguish parse errors
+    from a legitimately empty extraction ([]).
+    """
     text = text.strip()
 
     # Handle markdown code blocks
@@ -185,4 +189,4 @@ def parse_json_list(text: str) -> list[dict]:
         except json.JSONDecodeError:
             pass
 
-    return []
+    return None

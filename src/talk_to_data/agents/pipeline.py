@@ -199,6 +199,15 @@ def _run_prepare_notes(config: ProjectConfig):
 
     pid_col = ext_config.patient_id_column
     text_col = ext_config.notes_text_column
+
+    # Load cohort IDs upfront so we can filter each file early
+    cohort_ids = _load_cohort_ids(output_dir)
+    cohort_set = set(str(x) for x in cohort_ids) if cohort_ids is not None else None
+    if cohort_set is not None:
+        logger.info("Loaded %d cohort IDs for filtering", len(cohort_set))
+    else:
+        logger.info("No cohort_ids.json found; keeping all patients")
+
     dfs = []
 
     for f in notes_files:
@@ -221,6 +230,43 @@ def _run_prepare_notes(config: ProjectConfig):
             logger.info("  Skipping %s: missing text column '%s' (has: %s)", f.name, text_col, list(df.columns))
             continue
 
+        # Filter to cohort early, before any text processing
+        if cohort_set is not None:
+            before = len(df)
+            df = df[df[pid_col].astype(str).isin(cohort_set)]
+            logger.info("  Filtered to cohort: %d -> %d notes in %s", before, len(df), f.name)
+            if df.empty:
+                continue
+
+        # Look for a date column: try the configured name, then common alternatives
+        date_col = ext_config.notes_date_column
+        if date_col not in df.columns:
+            date_alternatives = [
+                "note_date", "date", "service_date", "encounter_date",
+                "date_of_service", "note_datetime", "datetime",
+                "report_date", "document_date",
+            ]
+            # Try case-insensitive matching
+            col_lower_map = {c.lower(): c for c in df.columns}
+            matched = False
+            for alt in date_alternatives:
+                if alt.lower() in col_lower_map:
+                    original_name = col_lower_map[alt.lower()]
+                    df = df.rename(columns={original_name: date_col})
+                    logger.info("  Mapped date column '%s' -> '%s' in %s", original_name, date_col, f.name)
+                    matched = True
+                    break
+            if not matched:
+                logger.info("  No date column found in %s (looked for '%s' and common alternatives)", f.name, date_col)
+
+        # Prepend note date to the beginning of each note's text
+        if date_col in df.columns:
+            mask = df[date_col].notna() & (df[date_col].astype(str).str.strip() != "")
+            df.loc[mask, text_col] = (
+                "Note date: " + df.loc[mask, date_col].astype(str) + "\n" + df.loc[mask, text_col].astype(str)
+            )
+            logger.info("  Prepended note dates to %d/%d notes in %s", mask.sum(), len(df), f.name)
+
         logger.info("  %d notes from %s", len(df), f.name)
         dfs.append(df)
 
@@ -230,21 +276,6 @@ def _run_prepare_notes(config: ProjectConfig):
 
     all_notes = pd.concat(dfs, ignore_index=True)
     logger.info("Combined %d notes from %d files (%d patients)", len(all_notes), len(dfs), all_notes[pid_col].nunique())
-
-    # Filter to cohort
-    cohort_ids = _load_cohort_ids(output_dir)
-    if cohort_ids is not None:
-        cohort_set = set(str(x) for x in cohort_ids)
-        before = len(all_notes)
-        before_patients = all_notes[pid_col].astype(str).nunique()
-        all_notes = all_notes[all_notes[pid_col].astype(str).isin(cohort_set)]
-        logger.info("Filtered to cohort: %d -> %d notes (%d -> %d patients)",
-                     before, len(all_notes), before_patients, all_notes[pid_col].nunique())
-        if all_notes.empty:
-            logger.warning("No notes remain after cohort filtering")
-            return
-    else:
-        logger.info("No cohort_ids.json found; keeping all patients")
 
     # Sort
     date_col = ext_config.notes_date_column

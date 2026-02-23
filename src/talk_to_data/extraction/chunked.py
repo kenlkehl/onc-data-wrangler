@@ -56,6 +56,8 @@ def chunk_text_by_tokens(text: str, tokenizer, chunk_size: int = 40000, overlap:
 
         chunk_text = tokenizer.decode(token_ids[start:end], skip_special_tokens=True)
         chunks.append(chunk_text)
+        if end >= total:
+            break
         start = max(start + 1, end - overlap)
 
     return chunks
