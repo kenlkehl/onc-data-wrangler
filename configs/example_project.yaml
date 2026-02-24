@@ -41,7 +41,6 @@ extraction:
   overlap_tokens: 200
   max_retries: 10
   patient_workers: 8
-  checkpoint_interval: 50
   patient_id_column: record_id
   notes_text_column: text
   notes_date_column: date

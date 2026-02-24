@@ -149,11 +149,11 @@ class DatabaseBuilder:
         all_ids = set()
 
         extractions_dir = self.output_dir / "extractions"
-        if extractions_dir.exists():
-            for shard in sorted(extractions_dir.glob("shard_*.parquet")):
-                df = pd.read_parquet(shard)
-                if "patient_id" in df.columns:
-                    all_ids.update(df["patient_id"].dropna().unique())
+        extractions_file = extractions_dir / "extractions.parquet"
+        if extractions_file.exists():
+            df = pd.read_parquet(extractions_file)
+            if "patient_id" in df.columns:
+                all_ids.update(df["patient_id"].dropna().unique())
 
         harmonized_dir = self.output_dir / "harmonized"
         if harmonized_dir.exists():
@@ -278,23 +278,18 @@ class DatabaseBuilder:
                      len(df), len(df.columns))
 
     def _load_extractions(self, con, id_map: dict):
-        """Load extraction shard parquets into per-category tables."""
+        """Load extraction parquet into per-category tables."""
         extractions_dir = self.output_dir / "extractions"
         if not extractions_dir.exists():
             logger.warning("No extractions directory found, skipping")
             return
 
-        shards = sorted(extractions_dir.glob("shard_*.parquet"))
-        if not shards:
-            logger.warning("No extraction shards found, skipping")
+        extractions_file = extractions_dir / "extractions.parquet"
+        if not extractions_file.exists():
+            logger.warning("No extractions.parquet found, skipping")
             return
 
-        dfs = []
-        for shard in shards:
-            df = pd.read_parquet(shard)
-            dfs.append(df)
-
-        df = pd.concat(dfs, ignore_index=True)
+        df = pd.read_parquet(extractions_file)
 
         if "patient_id" in df.columns:
             df = df.rename(columns={"patient_id": "record_id"})

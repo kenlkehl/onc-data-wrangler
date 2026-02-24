@@ -78,7 +78,6 @@ class ExtractionConfig:
     overlap_tokens: int = 200
     max_retries: int = 10
     patient_workers: int = 8
-    checkpoint_interval: int = 50
     patient_id_column: str = "record_id"
     notes_text_column: str = "text"
     notes_date_column: str = "date"

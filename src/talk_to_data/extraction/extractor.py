@@ -103,6 +103,54 @@ class Extractor:
         parsed = parse_json_list(response.text)
         return parsed if parsed is not None else []
 
+    def extract_single_chunk(self, chunk_text: str, running: Optional[list[dict]] = None, chunk_index: int = 0, total_chunks: int = 1, cancer_type: Optional[str] = None, max_tokens: Optional[int] = 8000, max_retries: int = 3) -> list[dict]:
+        """Extract from a single chunk, given the running state from prior chunks.
+
+        Args:
+            chunk_text: Text of this chunk.
+            running: Cumulative extraction from previous chunks (empty for first chunk).
+            chunk_index: 0-based index of this chunk.
+            total_chunks: Total number of chunks for this patient (for logging).
+            cancer_type: Override cancer type.
+            max_tokens: Max tokens per LLM call.
+            max_retries: Retries on parse failure.
+
+        Returns:
+            Updated cumulative extraction. On total failure, returns running unchanged.
+        """
+        if running is None:
+            running = []
+
+        instructions = self.build_extraction_prompt(cancer_type)
+        if chunk_index == 0 and not running:
+            prompt = instructions + FIRST_CHUNK_SUFFIX.format(chunk_text=chunk_text)
+        else:
+            running_json = json.dumps(running, indent=1)
+            prompt = UPDATE_CHUNK_TEMPLATE.format(
+                running_json=running_json,
+                instructions=instructions,
+                chunk_text=chunk_text,
+            )
+
+        parsed = None
+        for attempt in range(max_retries):
+            try:
+                response = self.llm_client.generate(prompt, max_tokens=max_tokens)
+                parsed = parse_json_list(response.text)
+                if parsed is not None:
+                    break
+            except Exception:
+                logger.exception("Chunk %d/%d: LLM call failed (attempt %d/%d)", chunk_index + 1, total_chunks, attempt + 1, max_retries)
+            else:
+                if parsed is None:
+                    logger.warning("Chunk %d/%d: JSON parse failed (attempt %d/%d)", chunk_index + 1, total_chunks, attempt + 1, max_retries)
+
+        if parsed is not None:
+            return parsed
+        else:
+            logger.warning("Chunk %d/%d: all retries failed, keeping previous extraction", chunk_index + 1, total_chunks)
+            return running
+
     def extract_iterative(self, texts: list[str], cancer_type: Optional[str] = None, max_tokens: Optional[int] = 8000, max_retries: int = 3) -> list[dict]:
         """Extract from multiple text chunks iteratively.
 
@@ -118,38 +166,12 @@ class Extractor:
         Returns:
             Final merged extraction as a list of dicts.
         """
-        instructions = self.build_extraction_prompt(cancer_type)
         running = []
-
         for i, chunk_text in enumerate(texts):
-            if i == 0:
-                prompt = instructions + FIRST_CHUNK_SUFFIX.format(chunk_text=chunk_text)
-            else:
-                running_json = json.dumps(running, indent=1)
-                prompt = UPDATE_CHUNK_TEMPLATE.format(
-                    running_json=running_json,
-                    instructions=instructions,
-                    chunk_text=chunk_text,
-                )
-
-            parsed = None
-            for attempt in range(max_retries):
-                try:
-                    response = self.llm_client.generate(prompt, max_tokens=max_tokens)
-                    parsed = parse_json_list(response.text)
-                    if parsed is not None:
-                        break
-                except Exception:
-                    logger.exception("Chunk %d/%d: LLM call failed (attempt %d/%d)", i + 1, len(texts), attempt + 1, max_retries)
-                else:
-                    if parsed is None:
-                        logger.warning("Chunk %d/%d: JSON parse failed (attempt %d/%d)", i + 1, len(texts), attempt + 1, max_retries)
-
-            if parsed is not None:
-                running = parsed
-            else:
-                logger.warning("Chunk %d/%d: all retries failed, keeping previous extraction", i + 1, len(texts))
-
+            running = self.extract_single_chunk(
+                chunk_text, running, i, len(texts),
+                cancer_type, max_tokens, max_retries,
+            )
         return running
 
 

@@ -148,7 +148,6 @@ extraction:
   overlap_tokens: 200
   max_retries: 10
   patient_workers: 8
-  checkpoint_interval: 50
   patient_id_column: record_id     # Column with patient/record IDs in notes files
   notes_text_column: text          # Column with note text
   notes_date_column: date          # Column with note dates

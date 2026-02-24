@@ -363,7 +363,6 @@ def _run_extraction(config: ProjectConfig, resume: bool = False):
             overlap=ext_config.overlap_tokens,
             max_retries=ext_config.max_retries,
             patient_workers=ext_config.patient_workers,
-            checkpoint_interval=ext_config.checkpoint_interval,
         )
 
         # Find notes file
