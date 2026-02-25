@@ -12,6 +12,7 @@ import json
 import logging
 import uuid
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, AsyncGenerator
 
@@ -143,6 +144,33 @@ async def _call_mcp_tool(
 
 
 # ---------------------------------------------------------------------------
+# Transcript logging
+# ---------------------------------------------------------------------------
+
+
+class TranscriptLogger:
+    """Logs each session's conversation to a JSON file in a transcripts folder."""
+
+    def __init__(self, transcripts_dir: Path) -> None:
+        self.transcripts_dir = transcripts_dir
+        self.transcripts_dir.mkdir(parents=True, exist_ok=True)
+
+    def _path_for(self, session_id: str, created_at: str) -> Path:
+        """Return the transcript file path for a session."""
+        # Use creation timestamp in the filename for easy sorting
+        safe_ts = created_at.replace(":", "-")
+        return self.transcripts_dir / f"{safe_ts}_{session_id}.json"
+
+    def save(self, session_id: str, transcript: dict) -> None:
+        """Write the full transcript dict to disk."""
+        path = self._path_for(session_id, transcript["created_at"])
+        try:
+            path.write_text(json.dumps(transcript, indent=2, default=str))
+        except Exception:
+            logger.error("Failed to save transcript %s", path, exc_info=True)
+
+
+# ---------------------------------------------------------------------------
 # Session state
 # ---------------------------------------------------------------------------
 
@@ -154,6 +182,13 @@ class ChatSession:
         self.messages: list[dict[str, Any]] = []
         self.pending_ask_user_id: str | None = None
         self.lock = asyncio.Lock()
+        self.created_at: str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H-%M-%S")
+        self.transcript: list[dict[str, Any]] = []
+
+    def log(self, entry: dict[str, Any]) -> None:
+        """Append a timestamped entry to the session transcript."""
+        entry["timestamp"] = datetime.now(timezone.utc).isoformat()
+        self.transcript.append(entry)
 
 
 # ---------------------------------------------------------------------------
@@ -203,6 +238,7 @@ async def _run_agent_loop(
         for block in response.content:
             if block.type == "text":
                 assistant_content.append({"type": "text", "text": block.text})
+                session.log({"role": "assistant", "type": "text", "text": block.text})
                 yield {
                     "event": "text",
                     "data": json.dumps({"text": block.text}),
@@ -227,6 +263,7 @@ async def _run_agent_loop(
 
         if ask_user_block is not None:
             question = ask_user_block.input.get("question", "")
+            session.log({"role": "assistant", "type": "ask_user", "question": question})
             yield {
                 "event": "ask_user",
                 "data": json.dumps(
@@ -256,6 +293,7 @@ async def _run_agent_loop(
         # Execute MCP tool calls and build tool_result messages
         tool_result_contents: list[dict[str, Any]] = []
         for block in tool_use_blocks:
+            session.log({"role": "assistant", "type": "tool_call", "tool": block.name, "input": block.input})
             yield {
                 "event": "tool_call",
                 "data": json.dumps(
@@ -276,6 +314,7 @@ async def _run_agent_loop(
                     "MCP tool %s failed: %s", block.name, exc, exc_info=True
                 )
 
+            session.log({"role": "tool", "type": "tool_result", "tool": block.name, "result": result_text[:2000]})
             yield {
                 "event": "tool_result",
                 "data": json.dumps(
@@ -320,6 +359,8 @@ def create_app_from_config(config: ProjectConfig) -> FastAPI:
     sessions: dict[str, ChatSession] = {}
     system_prompt: str = ""
     mcp_tools: list[dict] = []
+    transcripts_dir = Path(config.output_dir) / "transcripts"
+    transcript_logger = TranscriptLogger(transcripts_dir)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -358,6 +399,19 @@ def create_app_from_config(config: ProjectConfig) -> FastAPI:
     if STATIC_DIR.is_dir():
         app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
+    # ---- Transcript persistence helper ---------------------------------------
+
+    def _save_transcript(session_id: str, session: ChatSession) -> None:
+        """Persist the current session transcript to disk."""
+        transcript_logger.save(
+            session_id,
+            {
+                "session_id": session_id,
+                "created_at": session.created_at,
+                "entries": session.transcript,
+            },
+        )
+
     # ---- Chat endpoint (SSE) ------------------------------------------------
 
     @app.post("/chat")
@@ -374,7 +428,8 @@ def create_app_from_config(config: ProjectConfig) -> FastAPI:
 
         async def event_generator():
             async with session.lock:
-                # Append user message
+                # Log and append user message
+                session.log({"role": "user", "type": "message", "text": user_message})
                 session.messages.append(
                     {"role": "user", "content": user_message}
                 )
@@ -390,6 +445,9 @@ def create_app_from_config(config: ProjectConfig) -> FastAPI:
                     session, config, system_prompt, all_tools
                 ):
                     yield event
+
+                # Save transcript after each interaction completes
+                _save_transcript(session_id, session)
 
         return EventSourceResponse(event_generator())
 
@@ -421,7 +479,8 @@ def create_app_from_config(config: ProjectConfig) -> FastAPI:
 
         async def event_generator():
             async with session.lock:
-                # Inject the tool result for the ask_user call
+                # Log and inject the tool result for the ask_user call
+                session.log({"role": "user", "type": "answer", "text": answer_text})
                 session.messages.append(
                     {
                         "role": "user",
@@ -442,6 +501,9 @@ def create_app_from_config(config: ProjectConfig) -> FastAPI:
                 ):
                     yield event
 
+                # Save transcript after each interaction completes
+                _save_transcript(session_id, session)
+
         return EventSourceResponse(event_generator())
 
     # ---- Reset endpoint -----------------------------------------------------
@@ -451,6 +513,9 @@ def create_app_from_config(config: ProjectConfig) -> FastAPI:
         body = await request.json()
         session_id = body.get("session_id", "")
         if session_id in sessions:
+            session = sessions[session_id]
+            if session.transcript:
+                _save_transcript(session_id, session)
             del sessions[session_id]
         return JSONResponse({"status": "ok", "message": "Session reset."})
 
