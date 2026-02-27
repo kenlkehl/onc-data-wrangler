@@ -121,6 +121,158 @@ def generate_summary(
     return "\n".join(lines)
 
 
+_SKIP_COLUMN_PATTERNS = {
+    "date", "time", "timestamp", "calendar_year", "years_since_birth",
+    "record_id", "patient_id", "id",
+}
+
+
+def _is_dashboard_column(col_name: str) -> bool:
+    """Return True if a column is suitable for the summary dashboard.
+
+    Filters out date/time columns, ID columns, and interval-since-birth
+    columns that aren't useful for aggregate summaries.
+    """
+    lower = col_name.lower()
+    for pattern in _SKIP_COLUMN_PATTERNS:
+        if pattern in lower:
+            return False
+    return True
+
+
+def generate_summary_stats(
+    con,
+    project_name: str = "Dataset",
+    forbidden_columns: set = None,
+    min_cell_size: int = 10,
+) -> dict:
+    """Generate structured summary statistics as a dict for JSON serialization.
+
+    Returns a dict with project overview, table metadata, demographics
+    (from the cohort table if present), and per-table key categorical fields.
+    Mirrors the pan-top chatbot strategy: demographics grid, table list,
+    and a small number of key categorical fields per table.
+    """
+    tables = get_tables(con)
+
+    # Build table list with row/column counts
+    table_list = []
+    for table in tables:
+        row_count = get_row_count(con, table)
+        columns = get_columns(con, table, forbidden_columns)
+        table_list.append({
+            "name": table,
+            "row_count": row_count,
+            "column_count": len(columns),
+        })
+
+    # Total patients from cohort table (if it exists)
+    total_patients = None
+    if "cohort" in tables:
+        total_patients = get_row_count(con, "cohort")
+
+    # Demographics from cohort table
+    demographics = {}
+    if "cohort" in tables:
+        cohort_cols = get_columns(con, "cohort", forbidden_columns)
+        col_names = set(cohort_cols["column_name"].tolist())
+        for demo_col in ("sex", "race", "ethnicity"):
+            if demo_col in col_names:
+                demographics[demo_col] = _get_categorical_values(
+                    con, "cohort", demo_col, min_cell_size
+                )
+
+    # Per-table key categorical summaries (limited, filtered)
+    table_summaries = {}
+    for table in tables:
+        columns = get_columns(con, table, forbidden_columns)
+        cat_summaries = []
+
+        for _, row in columns.iterrows():
+            col_name = row["column_name"]
+            data_type = row["data_type"]
+
+            if not _is_dashboard_column(col_name):
+                continue
+
+            if data_type == "VARCHAR":
+                values = _get_categorical_values(
+                    con, table, col_name, min_cell_size
+                )
+                if values:
+                    cat_summaries.append({
+                        "column": col_name,
+                        "values": values,
+                    })
+
+        # Keep only the first few key fields per table
+        if cat_summaries:
+            table_summaries[table] = {
+                "categorical": cat_summaries[:4],
+            }
+
+    return {
+        "project_name": project_name,
+        "total_patients": total_patients,
+        "tables": table_list,
+        "demographics": demographics,
+        "table_summaries": table_summaries,
+    }
+
+
+def _get_categorical_values(
+    con, table: str, col_name: str, min_cell_size: int
+) -> list[dict]:
+    """Get top categorical values with suppressed counts."""
+    result = con.execute(
+        f'SELECT "{col_name}" AS value, COUNT(*) AS count '
+        f'FROM "{table}" '
+        f'WHERE "{col_name}" IS NOT NULL '
+        f'GROUP BY "{col_name}" '
+        f"ORDER BY count DESC "
+        f"LIMIT 15"
+    ).fetchdf()
+
+    if result.empty:
+        return []
+
+    values = []
+    for _, row in result.iterrows():
+        count = int(row["count"])
+        values.append({
+            "label": str(row["value"]),
+            "n": count if count >= min_cell_size else None,
+            "suppressed": count < min_cell_size,
+        })
+    return values
+
+
+def _get_numeric_stats(con, table: str, col_name: str) -> dict | None:
+    """Get numeric column statistics."""
+    result = con.execute(
+        f"SELECT "
+        f'COUNT("{col_name}") AS count, '
+        f'MIN("{col_name}") AS min, '
+        f'MAX("{col_name}") AS max, '
+        f'AVG("{col_name}") AS avg, '
+        f'MEDIAN("{col_name}") AS median '
+        f'FROM "{table}" '
+        f'WHERE "{col_name}" IS NOT NULL'
+    ).fetchone()
+
+    if result is None or result[0] == 0:
+        return None
+
+    count, min_val, max_val, avg_val, median_val = result
+    return {
+        "count": count,
+        "min": round(float(min_val), 2),
+        "max": round(float(max_val), 2),
+        "mean": round(float(avg_val), 2),
+        "median": round(float(median_val), 2),
+    }
+
+
 def _summarize_categorical(
     con, table: str, col_name: str, min_cell_size: int, lines: list
 ):

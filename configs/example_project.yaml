@@ -64,6 +64,7 @@ query:
 
 # --- Chatbot: Web interface settings ---
 chatbot:
+  chatbot_name: "My Study Assistant"   # Display name in the web chatbot header
   llm:
     provider: anthropic        # "anthropic" or "vertex"
     model: claude-opus-4-6

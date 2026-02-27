@@ -152,6 +152,97 @@
     color: var(--text-dim);
   }
 
+  /* ---------- Summary dashboard ---------- */
+  .summary-dashboard {
+    align-self: flex-start;
+    max-width: 90%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.5;
+  }
+  .summary-dashboard h2 {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 4px 0;
+    color: #333;
+  }
+  .summary-dashboard .total-patients {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 16px;
+  }
+  .summary-dashboard .total-patients span {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text-dim);
+  }
+  .summary-dashboard .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 14px 0 6px 0;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 3px;
+  }
+  .summary-dashboard .section-title:first-of-type {
+    margin-top: 0;
+  }
+  .demo-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .summary-dashboard table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 13px;
+  }
+  .summary-dashboard th, .summary-dashboard td {
+    padding: 3px 8px;
+    text-align: left;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .summary-dashboard th {
+    font-weight: 600;
+    color: #555;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .summary-dashboard td.num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .summary-dashboard .loading-placeholder {
+    color: var(--text-dim);
+    font-style: italic;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+  }
+  .summary-dashboard .loading-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #ccc;
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  .summary-dashboard .dash-error {
+    color: var(--text-dim);
+    font-style: italic;
+    padding: 4px 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
   /* ---------- Input bar ---------- */
   #inputBar {
     display: flex;
@@ -212,11 +303,18 @@
 <body>
 
 <header>
-  <h1>Talk-to-Data</h1>
+  <h1 id="chatTitle">Talk-to-Data</h1>
   <button id="resetBtn">New Conversation</button>
 </header>
 
-<div id="chatArea"></div>
+<div id="chatArea">
+  <div class="msg assistant" id="welcomeMsg">
+    <p>Welcome! I can help you query and analyze this dataset. Ask me about patient demographics, cohort characteristics, treatment patterns, and more.</p>
+  </div>
+  <div id="summary-dashboard" class="summary-dashboard">
+    <div class="loading-placeholder"><div class="loading-spinner"></div>Loading dataset summary...</div>
+  </div>
+</div>
 
 <div id="inputBar">
   <textarea id="msgInput" rows="1" placeholder="Ask a question about the dataset..."></textarea>
@@ -382,6 +480,8 @@ const msgInput   = document.getElementById('msgInput');
 const sendBtn    = document.getElementById('sendBtn');
 const resetBtn   = document.getElementById('resetBtn');
 
+console.log('[chat] Initialized');
+
 // ---------------------------------------------------------------------------
 // DOM helpers
 // ---------------------------------------------------------------------------
@@ -419,6 +519,7 @@ function setBusy(b) {
 // SSE stream reader
 // ---------------------------------------------------------------------------
 async function streamChat(url, body) {
+  console.log('[chat] Starting SSE stream to', url);
   addSpinner();
   setBusy(true);
 
@@ -431,6 +532,8 @@ async function streamChat(url, body) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
+
+    console.log('[chat] Response status:', resp.status);
 
     const reader = resp.body.getReader();
     const decoder = new TextDecoder();
@@ -457,14 +560,18 @@ async function streamChat(url, body) {
         let payload;
         try { payload = JSON.parse(eventData); } catch { continue; }
 
+        console.log('[chat] SSE event:', eventType, eventData.slice(0, 100));
+
         switch (eventType) {
           case 'session':
             sessionId = payload.session_id;
+            console.log('[chat] Session ID:', sessionId);
             break;
 
           case 'text':
             removeSpinner();
             assistantText += payload.text;
+            console.log('[chat] Text chunk received, total length:', assistantText.length);
             if (!assistantDiv) {
               assistantDiv = addMsg('assistant', md.render(assistantText));
             } else {
@@ -475,34 +582,40 @@ async function streamChat(url, body) {
 
           case 'tool_call':
             removeSpinner();
+            console.log('[chat] Tool call:', payload.tool);
             addMsg('tool-info', 'Tool call: ' + payload.tool + '\n' + JSON.stringify(payload.input, null, 2));
             addSpinner();
             break;
 
           case 'tool_result':
             removeSpinner();
+            console.log('[chat] Tool result:', payload.tool, payload.result.slice(0, 80));
             addMsg('tool-info', 'Result (' + payload.tool + '):\n' + payload.result);
             addSpinner();
             break;
 
           case 'ask_user':
             removeSpinner();
+            console.log('[chat] Ask user:', payload.question.slice(0, 80));
             handleAskUser(payload);
             return;  // stop processing; user will respond
 
           case 'error':
             removeSpinner();
+            console.error('[chat] Error:', payload.error);
             addMsg('error', 'Error: ' + (payload.error || 'Unknown error'));
             break;
 
           case 'done':
             removeSpinner();
+            console.log('[chat] Stream done');
             break;
         }
       }
     }
   } catch (err) {
     removeSpinner();
+    console.error('[chat] Connection error:', err);
     addMsg('error', 'Connection error: ' + err.message);
   }
 
@@ -514,6 +627,7 @@ async function streamChat(url, body) {
 // ---------------------------------------------------------------------------
 function handleAskUser(payload) {
   const question = payload.question;
+  console.log('[chat] Handling ask_user, question:', question.slice(0, 80));
   addMsg('ask-user', md.render(question));
   setBusy(false);
 
@@ -522,6 +636,7 @@ function handleAskUser(payload) {
   const onAnswer = () => {
     const answer = msgInput.value.trim();
     if (!answer) return;
+    console.log('[chat] Sending answer:', answer.slice(0, 80));
     addMsg('user', md.render(answer));
     msgInput.value = '';
     msgInput.style.height = 'auto';
@@ -544,6 +659,7 @@ function handleAskUser(payload) {
 function sendMessage() {
   const text = msgInput.value.trim();
   if (!text || busy) return;
+  console.log('[chat] Sending message:', text.slice(0, 80));
   addMsg('user', md.render(text));
   msgInput.value = '';
   msgInput.style.height = 'auto';
@@ -573,6 +689,7 @@ msgInput.addEventListener('input', () => {
 // Reset
 // ---------------------------------------------------------------------------
 resetBtn.addEventListener('click', async () => {
+  console.log('[chat] Resetting session');
   if (sessionId) {
     try {
       await fetch('/reset', {
@@ -586,7 +703,183 @@ resetBtn.addEventListener('click', async () => {
   chatArea.innerHTML = '';
   msgInput.value = '';
   setBusy(false);
+  // Re-add welcome message and summary dashboard
+  const welcome = document.createElement('div');
+  welcome.className = 'msg assistant';
+  welcome.id = 'welcomeMsg';
+  welcome.innerHTML = '<p>Welcome! I can help you query and analyze this dataset. Ask me about patient demographics, cohort characteristics, treatment patterns, and more.</p>';
+  chatArea.appendChild(welcome);
+  const dashDiv = document.createElement('div');
+  dashDiv.id = 'summary-dashboard';
+  dashDiv.className = 'summary-dashboard';
+  dashDiv.innerHTML = '<div class="loading-placeholder"><div class="loading-spinner"></div>Loading dataset summary...</div>';
+  chatArea.appendChild(dashDiv);
+  loadSummaryDashboard();
 });
+
+// ---------------------------------------------------------------------------
+// Summary dashboard (loaded on startup)
+// ---------------------------------------------------------------------------
+let summaryDataCache = null;
+
+function formatN(n) {
+  if (n == null) return '&mdash;';
+  if (typeof n === 'string') return n;
+  return n.toLocaleString();
+}
+
+function renderSummaryDashboard(data) {
+  const el = document.getElementById('summary-dashboard');
+  if (!el) return;
+
+  if (data.error) {
+    el.innerHTML = '<div class="dash-error">Summary statistics unavailable.</div>';
+    return;
+  }
+
+  let html = '';
+
+  // Project name heading
+  html += `<h2>${data.project_name || 'Dataset'} Overview</h2>`;
+
+  // Total patients
+  if (data.total_patients != null) {
+    html += `<div class="total-patients">${formatN(data.total_patients)} <span>patients</span></div>`;
+  }
+
+  // Demographics (from cohort table)
+  const demo = data.demographics || {};
+  const demoKeys = Object.keys(demo).filter(k => demo[k] && demo[k].length > 0);
+  if (demoKeys.length > 0) {
+    html += '<div class="section-title">Demographics</div>';
+    html += '<div class="demo-grid">';
+    for (const key of demoKeys) {
+      const label = key.charAt(0).toUpperCase() + key.slice(1);
+      let rows = '';
+      for (const v of demo[key]) {
+        const pct = (v.n != null && data.total_patients) ?
+          (v.n / data.total_patients * 100).toFixed(1) + '%' : '';
+        rows += `<tr><td>${v.label}</td><td class="num">${v.suppressed ? '&mdash;' : formatN(v.n)}</td><td class="num">${pct}</td></tr>`;
+      }
+      html += `<div><table><thead><tr><th>${label}</th><th>N</th><th>%</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    }
+    html += '</div>';
+  }
+
+  // Tables overview (simple table)
+  if (data.tables && data.tables.length > 0) {
+    html += '<div class="section-title">Available Tables</div>';
+    html += '<table><thead><tr><th>Table</th><th>Rows</th><th>Columns</th></tr></thead><tbody>';
+    for (const t of data.tables) {
+      html += `<tr><td>${t.name}</td><td class="num">${formatN(t.row_count)}</td><td class="num">${t.column_count}</td></tr>`;
+    }
+    html += '</tbody></table>';
+  }
+
+  // Per-table key categorical summaries (skip cohort demographics already shown)
+  const summaries = data.table_summaries || {};
+  for (const tableName of Object.keys(summaries)) {
+    const ts = summaries[tableName];
+    const cats = ts.categorical || [];
+    // Filter out demographics already shown
+    const shownDemoCols = (tableName === 'cohort') ? new Set(demoKeys) : new Set();
+    const filteredCats = cats.filter(c => !shownDemoCols.has(c.column));
+
+    if (filteredCats.length > 0) {
+      html += `<div class="section-title">${tableName}</div>`;
+      html += '<div class="demo-grid">';
+      for (const cat of filteredCats.slice(0, 4)) {
+        const total = data.total_patients;
+        let rows = '';
+        for (const v of cat.values.slice(0, 8)) {
+          const pct = (v.n != null && total) ? (v.n / total * 100).toFixed(1) + '%' : '';
+          rows += `<tr><td>${v.label}</td><td class="num">${v.suppressed ? '&mdash;' : formatN(v.n)}</td><td class="num">${pct}</td></tr>`;
+        }
+        html += `<div><table><thead><tr><th>${cat.column}</th><th>N</th><th>%</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+      }
+      html += '</div>';
+    }
+  }
+
+  el.innerHTML = html;
+}
+
+async function loadSummaryDashboard() {
+  const el = document.getElementById('summary-dashboard');
+  if (!el) return;
+
+  if (summaryDataCache) {
+    renderSummaryDashboard(summaryDataCache);
+    return;
+  }
+
+  // Try structured stats first, fall back to markdown
+  try {
+    const resp = await fetch('/summary-stats');
+    const data = await resp.json();
+    if (!data.error) {
+      summaryDataCache = data;
+      renderSummaryDashboard(data);
+      console.log('[chat] Summary dashboard loaded from structured stats');
+      return;
+    }
+  } catch (err) {
+    console.log('[chat] Could not load summary-stats:', err.message);
+  }
+
+  // Fallback: render markdown summary
+  try {
+    const resp = await fetch('/summary');
+    const data = await resp.json();
+    if (data.available && data.markdown) {
+      el.innerHTML = md.render(data.markdown);
+      console.log('[chat] Summary loaded from markdown fallback');
+    } else {
+      el.style.display = 'none';
+      console.log('[chat] No summary available');
+    }
+  } catch (err) {
+    el.style.display = 'none';
+    console.log('[chat] Could not load summary:', err.message);
+  }
+}
+loadSummaryDashboard();
+
+// ---------------------------------------------------------------------------
+// Chatbot name (loaded from config)
+// ---------------------------------------------------------------------------
+async function loadConfig() {
+  try {
+    const resp = await fetch('/config');
+    const data = await resp.json();
+    if (data.chatbot_name) {
+      document.getElementById('chatTitle').textContent = data.chatbot_name;
+      document.title = data.chatbot_name;
+      console.log('[chat] Chatbot name:', data.chatbot_name);
+    }
+  } catch (err) {
+    console.log('[chat] Could not load config:', err.message);
+  }
+}
+loadConfig();
+
+// ---------------------------------------------------------------------------
+// LLM health check (logged to console)
+// ---------------------------------------------------------------------------
+async function checkLLMHealth() {
+  try {
+    const resp = await fetch('/health/llm');
+    const data = await resp.json();
+    if (data.status === 'ok') {
+      console.log('[chat] LLM health: OK, model=' + data.model + ', provider=' + data.provider);
+    } else {
+      console.warn('[chat] LLM health: FAILED -', data.error);
+    }
+  } catch (err) {
+    console.error('[chat] LLM health check request failed:', err.message);
+  }
+}
+checkLLMHealth();
 
 // Focus input on load
 msgInput.focus();

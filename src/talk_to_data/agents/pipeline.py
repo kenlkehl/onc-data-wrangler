@@ -673,7 +673,7 @@ def _run_database(config: ProjectConfig):
 
 def _run_metadata(config: ProjectConfig):
     """Run the metadata generation stage."""
-    from ..database.metadata import generate_schema, generate_summary
+    from ..database.metadata import generate_schema, generate_summary, generate_summary_stats
     import duckdb
 
     db_path = config.db_path
@@ -695,6 +695,12 @@ def _run_metadata(config: ProjectConfig):
         config.summary_path.parent.mkdir(parents=True, exist_ok=True)
         config.summary_path.write_text(summary)
         logger.info("Summary written to %s", config.summary_path)
+
+        import json
+        stats = generate_summary_stats(con, config.name, forbidden_columns=forbidden, min_cell_size=min_cell)
+        config.summary_stats_path.parent.mkdir(parents=True, exist_ok=True)
+        config.summary_stats_path.write_text(json.dumps(stats, indent=2, default=str))
+        logger.info("Summary stats JSON written to %s", config.summary_stats_path)
     finally:
         con.close()
 

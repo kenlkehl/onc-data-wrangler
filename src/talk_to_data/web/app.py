@@ -17,11 +17,10 @@ from pathlib import Path
 from typing import Any, AsyncGenerator
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from mcp.client.streamable_http import streamablehttp_client
 from mcp import ClientSession
-from sse_starlette.sse import EventSourceResponse
 
 from ..config import ProjectConfig
 
@@ -50,6 +49,12 @@ ASK_USER_TOOL = {
         "required": ["question"],
     },
 }
+
+
+def _sse_event(event: str, data: str) -> str:
+    """Format a single SSE event with newline-terminated fields."""
+    escaped = data.replace("\n", "\ndata: ")
+    return f"event: {event}\ndata: {escaped}\n\n"
 
 
 def _build_system_prompt(config: ProjectConfig) -> str:
@@ -162,12 +167,23 @@ class TranscriptLogger:
         return self.transcripts_dir / f"{safe_ts}_{session_id}.json"
 
     def save(self, session_id: str, transcript: dict) -> None:
-        """Write the full transcript dict to disk."""
+        """Write the full transcript dict to disk using atomic write."""
         path = self._path_for(session_id, transcript["created_at"])
+        tmp_path = path.with_suffix(".tmp")
         try:
-            path.write_text(json.dumps(transcript, indent=2, default=str))
+            tmp_path.write_text(json.dumps(transcript, indent=2, default=str))
+            tmp_path.rename(path)
+            entry_count = len(transcript.get("entries", []))
+            logger.info(
+                "Transcript saved: session=%s, entries=%d, path=%s",
+                session_id, entry_count, path.name,
+            )
         except Exception:
             logger.error("Failed to save transcript %s", path, exc_info=True)
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except Exception:
+                pass
 
 
 # ---------------------------------------------------------------------------
@@ -181,6 +197,7 @@ class ChatSession:
     def __init__(self) -> None:
         self.messages: list[dict[str, Any]] = []
         self.pending_ask_user_id: str | None = None
+        self.pending_tool_results: list[dict[str, Any]] | None = None
         self.lock = asyncio.Lock()
         self.created_at: str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H-%M-%S")
         self.transcript: list[dict[str, Any]] = []
@@ -201,8 +218,8 @@ async def _run_agent_loop(
     config: ProjectConfig,
     system_prompt: str,
     all_tools: list[dict],
-) -> AsyncGenerator[dict, None]:
-    """Run the agentic tool loop, yielding SSE event dicts.
+) -> AsyncGenerator[str, None]:
+    """Run the agentic tool loop, yielding SSE event strings.
 
     This is an async generator that calls the LLM, executes MCP tool calls,
     feeds results back, and repeats until the LLM produces a final text
@@ -225,10 +242,7 @@ async def _run_agent_loop(
             )
         except Exception as exc:
             logger.error("Anthropic API error: %s", exc, exc_info=True)
-            yield {
-                "event": "error",
-                "data": json.dumps({"error": f"LLM API error: {exc}"}),
-            }
+            yield _sse_event("error", json.dumps({"error": f"LLM API error: {exc}"}))
             return
 
         # Separate text blocks and tool_use blocks
@@ -239,10 +253,7 @@ async def _run_agent_loop(
             if block.type == "text":
                 assistant_content.append({"type": "text", "text": block.text})
                 session.log({"role": "assistant", "type": "text", "text": block.text})
-                yield {
-                    "event": "text",
-                    "data": json.dumps({"text": block.text}),
-                }
+                yield _sse_event("text", json.dumps({"text": block.text}))
             elif block.type == "tool_use":
                 assistant_content.append(
                     {
@@ -264,21 +275,42 @@ async def _run_agent_loop(
         if ask_user_block is not None:
             question = ask_user_block.input.get("question", "")
             session.log({"role": "assistant", "type": "ask_user", "question": question})
-            yield {
-                "event": "ask_user",
-                "data": json.dumps(
-                    {
-                        "tool_use_id": ask_user_block.id,
-                        "question": question,
-                    }
-                ),
-            }
-            # Save assistant message and pause
+
+            # Append the full assistant message (with all tool_use blocks)
             session.messages.append(
                 {"role": "assistant", "content": assistant_content}
             )
+
+            # Execute non-ask_user tool calls so their results are available
+            tool_results_for_pending: list[dict[str, Any]] = []
+            for block in tool_use_blocks:
+                if block.name == "ask_user":
+                    continue
+                session.log({"role": "assistant", "type": "tool_call", "tool": block.name, "input": block.input})
+                yield _sse_event("tool_call", json.dumps({"tool": block.name, "input": block.input}))
+                try:
+                    result_text = await _call_mcp_tool(
+                        config.chatbot.mcp_url, config.chatbot.mcp_token,
+                        block.name, block.input,
+                    )
+                except Exception as exc:
+                    result_text = f"Tool error: {exc}"
+                    logger.error("MCP tool %s failed: %s", block.name, exc, exc_info=True)
+                session.log({"role": "tool", "type": "tool_result", "tool": block.name, "result": result_text[:2000]})
+                yield _sse_event("tool_result", json.dumps({"tool": block.name, "result": result_text[:2000]}))
+                tool_results_for_pending.append({
+                    "type": "tool_result",
+                    "tool_use_id": block.id,
+                    "content": result_text,
+                })
+
+            session.pending_tool_results = tool_results_for_pending
             session.pending_ask_user_id = ask_user_block.id
-            yield {"event": "done", "data": "{}"}
+
+            yield _sse_event("ask_user", json.dumps(
+                {"tool_use_id": ask_user_block.id, "question": question}
+            ))
+            yield _sse_event("done", "{}")
             return
 
         # No ask_user — append assistant message
@@ -294,12 +326,7 @@ async def _run_agent_loop(
         tool_result_contents: list[dict[str, Any]] = []
         for block in tool_use_blocks:
             session.log({"role": "assistant", "type": "tool_call", "tool": block.name, "input": block.input})
-            yield {
-                "event": "tool_call",
-                "data": json.dumps(
-                    {"tool": block.name, "input": block.input}
-                ),
-            }
+            yield _sse_event("tool_call", json.dumps({"tool": block.name, "input": block.input}))
 
             try:
                 result_text = await _call_mcp_tool(
@@ -315,12 +342,7 @@ async def _run_agent_loop(
                 )
 
             session.log({"role": "tool", "type": "tool_result", "tool": block.name, "result": result_text[:2000]})
-            yield {
-                "event": "tool_result",
-                "data": json.dumps(
-                    {"tool": block.name, "result": result_text[:2000]}
-                ),
-            }
+            yield _sse_event("tool_result", json.dumps({"tool": block.name, "result": result_text[:2000]}))
 
             tool_result_contents.append(
                 {
@@ -337,7 +359,7 @@ async def _run_agent_loop(
 
         # Continue loop for next LLM turn
 
-    yield {"event": "done", "data": "{}"}
+    yield _sse_event("done", "{}")
 
 
 # ---------------------------------------------------------------------------
@@ -359,16 +381,38 @@ def create_app_from_config(config: ProjectConfig) -> FastAPI:
     sessions: dict[str, ChatSession] = {}
     system_prompt: str = ""
     mcp_tools: list[dict] = []
+    summary_markdown: str = ""
+    summary_stats_data: dict[str, Any] = {}
+    llm_health_status: dict[str, Any] = {"status": "unknown"}
     transcripts_dir = Path(config.output_dir) / "transcripts"
     transcript_logger = TranscriptLogger(transcripts_dir)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        nonlocal system_prompt, mcp_tools
+        nonlocal system_prompt, mcp_tools, summary_markdown, summary_stats_data, llm_health_status
 
         # Build the system prompt once at startup
         system_prompt = _build_system_prompt(config)
         logger.info("System prompt built (%d chars)", len(system_prompt))
+
+        # Load summary markdown for the frontend dashboard
+        summary_path = config.summary_path
+        if summary_path.exists():
+            summary_markdown = summary_path.read_text()
+            logger.info("Loaded summary markdown (%d chars)", len(summary_markdown))
+        else:
+            logger.warning("No summary.md found at %s", summary_path)
+
+        # Load structured summary stats JSON
+        stats_path = config.summary_stats_path
+        if stats_path.exists():
+            try:
+                summary_stats_data = json.loads(stats_path.read_text())
+                logger.info("Loaded summary stats JSON")
+            except Exception:
+                logger.warning("Could not parse summary_stats.json", exc_info=True)
+        else:
+            logger.info("No summary_stats.json found at %s", stats_path)
 
         # Discover MCP tools
         try:
@@ -383,6 +427,41 @@ def create_app_from_config(config: ProjectConfig) -> FastAPI:
                 exc_info=True,
             )
             mcp_tools = []
+
+        # LLM health check
+        try:
+            client = _make_anthropic_client(config)
+            loop = asyncio.get_event_loop()
+            test_response = await loop.run_in_executor(
+                None,
+                lambda: client.messages.create(
+                    model=config.chatbot.llm.model,
+                    max_tokens=32,
+                    messages=[{"role": "user", "content": "Reply with OK."}],
+                ),
+            )
+            reply = "".join(
+                b.text for b in test_response.content if b.type == "text"
+            )
+            llm_health_status = {
+                "status": "ok",
+                "model": config.chatbot.llm.model,
+                "provider": config.chatbot.llm.provider,
+                "test_reply": reply[:50],
+            }
+            logger.info(
+                "LLM health check passed: model=%s, reply=%s",
+                config.chatbot.llm.model,
+                reply[:50],
+            )
+        except Exception as exc:
+            llm_health_status = {
+                "status": "error",
+                "model": config.chatbot.llm.model,
+                "provider": config.chatbot.llm.provider,
+                "error": str(exc),
+            }
+            logger.error("LLM health check failed: %s", exc, exc_info=True)
 
         yield
 
@@ -409,6 +488,7 @@ def create_app_from_config(config: ProjectConfig) -> FastAPI:
                 "session_id": session_id,
                 "created_at": session.created_at,
                 "entries": session.transcript,
+                "messages": session.messages,
             },
         )
 
@@ -435,10 +515,7 @@ def create_app_from_config(config: ProjectConfig) -> FastAPI:
                 )
 
                 # Send session_id so client can persist it
-                yield {
-                    "event": "session",
-                    "data": json.dumps({"session_id": session_id}),
-                }
+                yield _sse_event("session", json.dumps({"session_id": session_id}))
 
                 all_tools = mcp_tools + [ASK_USER_TOOL]
                 async for event in _run_agent_loop(
@@ -449,7 +526,7 @@ def create_app_from_config(config: ProjectConfig) -> FastAPI:
                 # Save transcript after each interaction completes
                 _save_transcript(session_id, session)
 
-        return EventSourceResponse(event_generator())
+        return StreamingResponse(event_generator(), media_type="text/event-stream")
 
     # ---- Answer to ask_user -------------------------------------------------
 
@@ -481,19 +558,19 @@ def create_app_from_config(config: ProjectConfig) -> FastAPI:
             async with session.lock:
                 # Log and inject the tool result for the ask_user call
                 session.log({"role": "user", "type": "answer", "text": answer_text})
+
+                # Merge any pending tool results with the ask_user answer
+                all_results = list(session.pending_tool_results or [])
+                all_results.append({
+                    "type": "tool_result",
+                    "tool_use_id": pending_id,
+                    "content": answer_text,
+                })
                 session.messages.append(
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "tool_result",
-                                "tool_use_id": pending_id,
-                                "content": answer_text,
-                            }
-                        ],
-                    }
+                    {"role": "user", "content": all_results}
                 )
                 session.pending_ask_user_id = None
+                session.pending_tool_results = None
 
                 all_tools = mcp_tools + [ASK_USER_TOOL]
                 async for event in _run_agent_loop(
@@ -504,7 +581,7 @@ def create_app_from_config(config: ProjectConfig) -> FastAPI:
                 # Save transcript after each interaction completes
                 _save_transcript(session_id, session)
 
-        return EventSourceResponse(event_generator())
+        return StreamingResponse(event_generator(), media_type="text/event-stream")
 
     # ---- Reset endpoint -----------------------------------------------------
 
@@ -524,5 +601,34 @@ def create_app_from_config(config: ProjectConfig) -> FastAPI:
     @app.get("/health")
     async def health():
         return JSONResponse({"status": "ok"})
+
+    @app.get("/health/llm")
+    async def health_llm():
+        return JSONResponse(llm_health_status)
+
+    # ---- Summary endpoint ---------------------------------------------------
+
+    @app.get("/summary")
+    async def summary():
+        return JSONResponse({
+            "markdown": summary_markdown,
+            "available": bool(summary_markdown),
+        })
+
+    # ---- Summary stats endpoint (structured JSON) ---------------------------
+
+    @app.get("/summary-stats")
+    async def summary_stats():
+        if summary_stats_data:
+            return JSONResponse(summary_stats_data)
+        return JSONResponse({"error": "Summary stats not available"})
+
+    # ---- Config endpoint ----------------------------------------------------
+
+    @app.get("/config")
+    async def get_config():
+        return JSONResponse({
+            "chatbot_name": config.chatbot.chatbot_name,
+        })
 
     return app

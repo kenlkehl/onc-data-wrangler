@@ -113,6 +113,7 @@ class ChatbotConfig:
     max_agent_turns: int = 75
     host: str = "0.0.0.0"
     port: int = 8080
+    chatbot_name: str = "Talk-to-Data"
 
 
 @dataclass
@@ -247,6 +248,11 @@ class ProjectConfig:
     def summary_path(self) -> Path:
         """Path to the generated summary statistics file."""
         return self.output_path("summary.md")
+
+    @property
+    def summary_stats_path(self) -> Path:
+        """Path to the generated structured summary statistics JSON."""
+        return self.output_path("summary_stats.json")
 
 
 def _dict_to_llm_config(d: dict) -> LLMConfig:
