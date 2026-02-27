@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "General-purpose framework for building agentic clinical dataset query systems."
 requires-python = ">=3.13"
 dependencies = [
-    "anthropic>=0.42.0",
+    "anthropic[vertex]>=0.42.0",
     "claude-agent-sdk>=0.1.0",
     "duckdb>=1.0.0",
     "fastapi>=0.110.0",

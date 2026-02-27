@@ -389,13 +389,21 @@ class CheckpointManager:
                     category = next(iter(ext))
                     attrs = ext[category]
                     row = {"patient_id": patient_id, "category": category}
-                    row.update(attrs)
+                    for k, v in attrs.items():
+                        if isinstance(v, list):
+                            row[k] = "; ".join(str(item) for item in v)
+                        else:
+                            row[k] = v
                     rows.append(row)
 
         if not rows:
             return pd.DataFrame()
 
         df = pd.DataFrame(rows)
+        # Coerce mixed-type object columns to strings so PyArrow can serialize
+        for col in df.columns:
+            if df[col].dtype == object:
+                df[col] = df[col].apply(lambda x: str(x) if x is not None and not isinstance(x, str) else x)
         out_path = self.output_dir / "extractions.parquet"
         df.to_parquet(out_path, index=False)
         logger.info("Saved final output %s (%d rows from %d patients)",

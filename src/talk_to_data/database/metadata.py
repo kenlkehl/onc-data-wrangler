@@ -166,9 +166,9 @@ def _summarize_numeric(con, table: str, col_name: str, lines: list):
         f'MAX("{col_name}") AS max, '
         f'AVG("{col_name}") AS avg, '
         f'MEDIAN("{col_name}") AS median, '
-        f"QUANTILE_CONT({0.25}) WITHIN GROUP "
+        f"PERCENTILE_CONT({0.25}) WITHIN GROUP "
         f'(ORDER BY "{col_name}") AS q1, '
-        f"QUANTILE_CONT({0.75}) WITHIN GROUP "
+        f"PERCENTILE_CONT({0.75}) WITHIN GROUP "
         f'(ORDER BY "{col_name}") AS q3 '
         f'FROM "{table}" '
         f'WHERE "{col_name}" IS NOT NULL'

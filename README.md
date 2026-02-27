@@ -71,7 +71,7 @@ Once you have a config file (from setup or by editing `configs/example_project.y
 uv run talk-to-data pipeline configs/my_project.yaml
 
 # Or run specific stages
-uv run talk-to-data pipeline configs/my_project.yaml --stages cohort extract database metadata
+uv run talk-to-data pipeline configs/my_project.yaml --stages cohort prepare_notes extract harmonize propose_tables database metadata
 
 # Resume extraction from checkpoint (if previously interrupted)
 uv run talk-to-data pipeline configs/my_project.yaml --stages extract --resume

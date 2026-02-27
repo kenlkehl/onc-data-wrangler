@@ -65,10 +65,12 @@ def main():
         from .query.mcp_server import create_server_from_config
         from .config import load_config
         config = load_config(args.config)
+        if args.host:
+            config.query.mcp_host = args.host
+        if args.port:
+            config.query.mcp_port = args.port
         mcp = create_server_from_config(config)
-        host = args.host or config.query.mcp_host
-        port = args.port or config.query.mcp_port
-        mcp.run(transport="streamable-http", host=host, port=port)
+        mcp.run(transport="streamable-http")
 
     elif args.command == "chat":
         from .web.app import create_app_from_config

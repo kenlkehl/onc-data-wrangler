@@ -302,7 +302,7 @@ def _run_prepare_notes(config: ProjectConfig):
 def _run_extraction(config: ProjectConfig, resume: bool = False):
     """Run the extraction stage."""
     from ..extraction.extractor import Extractor
-    from ..extraction.chunked import ChunkedExtractor, concatenate_patient_notes
+    from ..extraction.chunked import ChunkedExtractor, CheckpointManager, concatenate_patient_notes, chunk_text_by_tokens
     from ..llm.base import LLMClient
     import pandas as pd
 
@@ -311,8 +311,64 @@ def _run_extraction(config: ProjectConfig, resume: bool = False):
     vs_config = ext_config.vllm_servers
 
     # Create output directories
-    (output_dir / "extractions").mkdir(parents=True, exist_ok=True)
+    extractions_dir = output_dir / "extractions"
+    extractions_dir.mkdir(parents=True, exist_ok=True)
 
+    # --- Early exit: check if all LLM work is already done before starting servers ---
+    if resume:
+        ckpt = CheckpointManager(extractions_dir)
+        existing_rounds = ckpt.find_round_files()
+        if existing_rounds:
+            # Load notes to determine expected chunk counts
+            output_notes = output_dir / "notes.parquet"
+            if not output_notes.exists():
+                output_notes = output_dir / "notes.csv"
+            if not output_notes.exists():
+                output_notes = config.find_file("notes.parquet") or config.find_file("notes.csv")
+
+            if output_notes and Path(output_notes).exists():
+                if str(output_notes).endswith(".parquet"):
+                    notes_df_check = pd.read_parquet(output_notes)
+                else:
+                    notes_df_check = pd.read_csv(output_notes, low_memory=False)
+
+                # Filter to cohort
+                cohort_ids = _load_cohort_ids(output_dir)
+                if cohort_ids is not None and ext_config.patient_id_column in notes_df_check.columns:
+                    cohort_set = set(str(x) for x in cohort_ids)
+                    notes_df_check = notes_df_check[notes_df_check[ext_config.patient_id_column].astype(str).isin(cohort_set)]
+
+                # Compute chunk counts per patient
+                tokenizer = None
+                try:
+                    from transformers import AutoTokenizer
+                    tokenizer = AutoTokenizer.from_pretrained(ext_config.llm.model)
+                except Exception:
+                    pass
+
+                grouped = notes_df_check.sort_values(by=[ext_config.patient_id_column]).reset_index(drop=True)
+                patient_groups = dict(list(grouped.groupby(ext_config.patient_id_column)))
+                patient_num_chunks = {}
+                for pid, pdf in patient_groups.items():
+                    pid_str = str(pid)
+                    text = concatenate_patient_notes(pdf, ext_config.notes_text_column, ext_config.notes_date_column, ext_config.notes_type_column)
+                    if tokenizer:
+                        num = len(chunk_text_by_tokens(text, tokenizer, ext_config.chunk_tokens, ext_config.overlap_tokens))
+                    else:
+                        num = 1
+                    patient_num_chunks[pid_str] = num
+
+                all_ids = set(patient_num_chunks.keys())
+                max_rounds = max(patient_num_chunks.values()) if patient_num_chunks else 0
+                resume_round, _ = ckpt.determine_resume_state(all_ids, patient_num_chunks)
+
+                if resume_round >= max_rounds:
+                    logger.info("All extraction rounds already complete. Skipping server startup.")
+                    results_df = ckpt.build_final_output()
+                    logger.info("Extraction complete: %d rows", len(results_df))
+                    return
+
+    # --- Normal extraction flow ---
     # Determine if we use managed vLLM servers
     use_managed_servers = vs_config.gpus and ext_config.llm.provider == "openai"
     server_mgr = None
@@ -401,7 +457,7 @@ def _run_extraction(config: ProjectConfig, resume: bool = False):
         # Run extraction
         results_df = chunked.extract_cohort(
             notes_df=notes_df,
-            output_dir=output_dir / "extractions",
+            output_dir=extractions_dir,
             patient_id_column=ext_config.patient_id_column,
             text_column=ext_config.notes_text_column,
             date_column=ext_config.notes_date_column,
@@ -438,9 +494,31 @@ def _run_harmonization(config: ProjectConfig):
 
     pid_col = config.cohort.patient_id_column
 
+    # Collect all source columns referenced by field mappings so we can
+    # skip files that have no relevant columns without loading them fully.
+    mapped_source_columns = {m.source_column for m in harmonizer.mappings}
+
     for source_file in config.resolve_input_files():
-        logger.info("Harmonizing %s ...", source_file.name)
         import pandas as pd
+        import pyarrow.parquet as pq
+
+        # Read only the column names to check for relevant mappings
+        if source_file.suffix == ".parquet":
+            file_columns = set(pq.read_schema(source_file).names)
+        else:
+            file_columns = set(pd.read_csv(source_file, nrows=0).columns)
+
+        # Account for patient ID column renaming
+        file_pid = config.get_patient_id_column(source_file.name)
+        if file_pid != pid_col and file_pid in file_columns and pid_col not in file_columns:
+            file_columns.discard(file_pid)
+            file_columns.add(pid_col)
+
+        if not mapped_source_columns & file_columns:
+            logger.info("Skipping %s (no mapped columns found)", source_file.name)
+            continue
+
+        logger.info("Harmonizing %s ...", source_file.name)
 
         if source_file.suffix == ".parquet":
             src_df = pd.read_parquet(source_file)
