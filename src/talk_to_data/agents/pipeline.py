@@ -645,21 +645,10 @@ def _run_propose_tables(config: ProjectConfig):
 def _table_name_from_category(category: str) -> str:
     """Convert a category name to a database table name.
 
-    Strips common prefixes like 'cancer_' and normalizes the name.
+    Delegates to the canonical implementation in database.builder.
     """
-    name = category.lower().strip()
-    for prefix in ("cancer_",):
-        if name.startswith(prefix):
-            name = name[len(prefix):]
-
-    name = name.replace("_therapy_regimen", "").replace("_therapy", "")
-    name = "_".join(name.split(" ")).replace("-", "_")
-    name = "".join(c if c.isalnum() else "_" for c in name)
-
-    if name and name[0].isdigit():
-        name = "t_" + name
-
-    return name or "unknown"
+    from ..database.builder import _table_name_from_category as _impl
+    return _impl(category)
 
 
 def _run_database(config: ProjectConfig):

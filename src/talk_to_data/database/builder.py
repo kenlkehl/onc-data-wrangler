@@ -72,6 +72,28 @@ def _sanitize_table_name(name: str) -> str:
     return name
 
 
+def _table_name_from_category(category: str) -> str:
+    """Convert an extraction/harmonization category to a database table name.
+
+    Strips common prefixes like 'cancer_' and normalizes the name.
+    This is the canonical function used by both the database builder and
+    the propose_tables stage to ensure consistent naming.
+    """
+    name = category.lower().strip()
+    for prefix in ("cancer_",):
+        if name.startswith(prefix):
+            name = name[len(prefix):]
+
+    name = name.replace("_therapy_regimen", "").replace("_therapy", "")
+    name = "_".join(name.split(" ")).replace("-", "_")
+    name = "".join(c if c.isalnum() else "_" for c in name)
+
+    if name and name[0].isdigit():
+        name = "t_" + name
+
+    return name or "unknown"
+
+
 def _table_exists(con, table_name: str) -> bool:
     """Check if a table already exists in the database."""
     result = con.execute(
@@ -97,6 +119,7 @@ class DatabaseBuilder:
         self.min_non_missing = config.database.min_non_missing
         self.deidentify_dates = config.database.deidentify_dates
         self._birth_dates = None
+        self._approved_tables: set[str] | None = None
 
     def build(self) -> Path:
         """Build the full database. Returns Path to the created DuckDB file."""
@@ -104,6 +127,9 @@ class DatabaseBuilder:
         if self.db_path.exists():
             logger.info("Removing existing database: %s", self.db_path)
             self.db_path.unlink()
+
+        # Load proposed tables for gating (if available)
+        self._approved_tables = self._load_proposed_tables()
 
         id_map = self._collect_all_patient_ids()
 
@@ -121,6 +147,29 @@ class DatabaseBuilder:
 
         logger.info("Database built: %s", self.db_path)
         return self.db_path
+
+    def _load_proposed_tables(self) -> set[str] | None:
+        """Load approved table names from proposed_tables.json.
+
+        Returns the set of approved table names, or None if the file
+        doesn't exist (in which case all tables are created).
+        """
+        proposal_path = self.output_dir / "proposed_tables.json"
+        if not proposal_path.exists():
+            logger.info("No proposed_tables.json found; creating all tables")
+            return None
+        with open(proposal_path) as f:
+            proposed = json.load(f)
+        approved = set(proposed.keys())
+        logger.info("Loaded %d approved tables from proposed_tables.json: %s",
+                     len(approved), sorted(approved))
+        return approved
+
+    def _is_table_approved(self, table_name: str) -> bool:
+        """Check if a table name is in the approved set."""
+        if self._approved_tables is None:
+            return True
+        return table_name in self._approved_tables
 
     def _collect_all_patient_ids(self) -> dict[str, str]:
         """Build a consistent original-ID → de-identified-ID mapping.
@@ -303,7 +352,21 @@ class DatabaseBuilder:
         # Create per-category tables
         if "category" in df.columns:
             for category, group_df in df.groupby("category"):
-                table_name = _sanitize_table_name(str(category))
+                table_name = _table_name_from_category(str(category))
+
+                if not self._is_table_approved(table_name):
+                    logger.info("Skipping extraction category '%s' -> table '%s' (not in proposed_tables)",
+                                category, table_name)
+                    continue
+
+                # Drop columns irrelevant to this category (all NaN)
+                group_df = group_df.dropna(axis=1, how="all")
+                # Drop the category column (redundant — the table name IS the category)
+                if "category" in group_df.columns:
+                    group_df = group_df.drop(columns=["category"])
+                # Apply same non-missing filter as cohort/harmonized tables
+                group_df = filter_columns_by_non_missing(group_df, self.min_non_missing)
+
                 if _table_exists(con, table_name):
                     con.execute(
                         f'INSERT INTO "{table_name}" SELECT * FROM group_df'
@@ -312,12 +375,8 @@ class DatabaseBuilder:
                     con.execute(
                         f'CREATE TABLE "{table_name}" AS SELECT * FROM group_df'
                     )
-                logger.info("Loaded extraction category '%s' -> table '%s': %d rows",
-                            category, table_name, len(group_df))
-
-        # Also create bulk extractions table
-        con.execute("CREATE TABLE extractions AS SELECT * FROM df")
-        logger.info("Loaded bulk extractions table: %d rows", len(df))
+                logger.info("Loaded extraction category '%s' -> table '%s': %d rows, %d columns",
+                            category, table_name, len(group_df), len(group_df.columns))
 
     def _load_harmonized(self, con, id_map: dict):
         """Load harmonized structured data into tables."""
@@ -332,6 +391,17 @@ class DatabaseBuilder:
             return
 
         for parquet_file in parquet_files:
+            # Table name from file stem: files are named {source}_{category}.parquet
+            stem = parquet_file.stem
+            parts = stem.rsplit("_", 1)
+            category = parts[-1] if len(parts) > 1 else stem
+            table_name = _table_name_from_category(category)
+
+            if not self._is_table_approved(table_name):
+                logger.info("Skipping harmonized file '%s' -> table '%s' (not in proposed_tables)",
+                            parquet_file.name, table_name)
+                continue
+
             df = pd.read_parquet(parquet_file)
 
             if "record_id" in df.columns:
@@ -343,11 +413,6 @@ class DatabaseBuilder:
                 df = self._deidentify_dates_df(df)
 
             df = filter_columns_by_non_missing(df, self.min_non_missing)
-
-            # Table name from file stem: rsplit on '_', take from index 1 to -1
-            stem = parquet_file.stem
-            parts = stem.rsplit("_", 1)
-            table_name = _sanitize_table_name(parts[0] if len(parts) > 1 else stem)
 
             if _table_exists(con, table_name):
                 con.execute(

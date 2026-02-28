@@ -97,10 +97,9 @@ async def _run_setup_agent_async(
             dir_name = first.name if first.is_dir() else first.parent.name
             config_path = str(Path(output_dir) / f"{dir_name}.yaml")
 
-        # Determine working directory
-        cwd = str(Path(os.path.commonpath(
-            [str(Path(p).parent) if Path(p).is_file() else str(p) for p in resolved_paths]
-        )))
+        # Use the directory where the CLI was invoked so that relative
+        # output paths (e.g. ./output_datasets/…) resolve correctly.
+        cwd = str(Path.cwd())
 
         # Build prompt with known parameters
         prompt_parts = ["I need help setting up a new Talk-to-Data project.\n"]
