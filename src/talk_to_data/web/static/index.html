@@ -243,6 +243,55 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
+  /* ---------- Toggle switch ---------- */
+  .toggle-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .toggle-group label {
+    font-size: 13px;
+    color: var(--text-dim);
+    cursor: pointer;
+    user-select: none;
+  }
+  .toggle-switch {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+  .toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  .toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: #ccc;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    left: 2px;
+    bottom: 2px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.2s;
+  }
+  .toggle-switch input:checked + .toggle-slider {
+    background: var(--primary);
+  }
+  .toggle-switch input:checked + .toggle-slider::before {
+    transform: translateX(16px);
+  }
+
   /* ---------- Input bar ---------- */
   #inputBar {
     display: flex;
@@ -304,7 +353,16 @@
 
 <header>
   <h1 id="chatTitle">Talk-to-Data</h1>
-  <button id="resetBtn">New Conversation</button>
+  <div style="display:flex;align-items:center;gap:16px;">
+    <div class="toggle-group">
+      <label for="toolToggle">Show code</label>
+      <span class="toggle-switch">
+        <input type="checkbox" id="toolToggle">
+        <label class="toggle-slider" for="toolToggle"></label>
+      </span>
+    </div>
+    <button id="resetBtn">New Conversation</button>
+  </div>
 </header>
 
 <div id="chatArea">
@@ -474,11 +532,19 @@ const md = (() => {
 // ---------------------------------------------------------------------------
 let sessionId = '';
 let busy = false;
+let showToolCalls = false;
 
 const chatArea   = document.getElementById('chatArea');
 const msgInput   = document.getElementById('msgInput');
 const sendBtn    = document.getElementById('sendBtn');
 const resetBtn   = document.getElementById('resetBtn');
+const toolToggle = document.getElementById('toolToggle');
+
+toolToggle.addEventListener('change', () => {
+  showToolCalls = toolToggle.checked;
+  const display = showToolCalls ? '' : 'none';
+  chatArea.querySelectorAll('.tool-info').forEach(el => el.style.display = display);
+});
 
 console.log('[chat] Initialized');
 
@@ -582,15 +648,20 @@ async function streamChat(url, body) {
 
           case 'tool_call':
             removeSpinner();
+            // Reset so next text event creates a fresh bubble after tool output
+            assistantDiv = null;
+            assistantText = '';
             console.log('[chat] Tool call:', payload.tool);
-            addMsg('tool-info', 'Tool call: ' + payload.tool + '\n' + JSON.stringify(payload.input, null, 2));
+            const tcDiv = addMsg('tool-info', 'Tool call: ' + payload.tool + '\n' + JSON.stringify(payload.input, null, 2));
+            if (!showToolCalls) tcDiv.style.display = 'none';
             addSpinner();
             break;
 
           case 'tool_result':
             removeSpinner();
             console.log('[chat] Tool result:', payload.tool, payload.result.slice(0, 80));
-            addMsg('tool-info', 'Result (' + payload.tool + '):\n' + payload.result);
+            const trDiv = addMsg('tool-info', 'Result (' + payload.tool + '):\n' + payload.result);
+            if (!showToolCalls) trDiv.style.display = 'none';
             addSpinner();
             break;
 
@@ -747,57 +818,14 @@ function renderSummaryDashboard(data) {
     html += `<div class="total-patients">${formatN(data.total_patients)} <span>patients</span></div>`;
   }
 
-  // Demographics (from cohort table)
-  const demo = data.demographics || {};
-  const demoKeys = Object.keys(demo).filter(k => demo[k] && demo[k].length > 0);
-  if (demoKeys.length > 0) {
-    html += '<div class="section-title">Demographics</div>';
-    html += '<div class="demo-grid">';
-    for (const key of demoKeys) {
-      const label = key.charAt(0).toUpperCase() + key.slice(1);
-      let rows = '';
-      for (const v of demo[key]) {
-        const pct = (v.n != null && data.total_patients) ?
-          (v.n / data.total_patients * 100).toFixed(1) + '%' : '';
-        rows += `<tr><td>${v.label}</td><td class="num">${v.suppressed ? '&mdash;' : formatN(v.n)}</td><td class="num">${pct}</td></tr>`;
-      }
-      html += `<div><table><thead><tr><th>${label}</th><th>N</th><th>%</th></tr></thead><tbody>${rows}</tbody></table></div>`;
-    }
-    html += '</div>';
-  }
-
-  // Tables overview (simple table)
+  // Available tables with column names
   if (data.tables && data.tables.length > 0) {
     html += '<div class="section-title">Available Tables</div>';
-    html += '<table><thead><tr><th>Table</th><th>Rows</th><th>Columns</th></tr></thead><tbody>';
     for (const t of data.tables) {
-      html += `<tr><td>${t.name}</td><td class="num">${formatN(t.row_count)}</td><td class="num">${t.column_count}</td></tr>`;
-    }
-    html += '</tbody></table>';
-  }
-
-  // Per-table key categorical summaries (skip cohort demographics already shown)
-  const summaries = data.table_summaries || {};
-  for (const tableName of Object.keys(summaries)) {
-    const ts = summaries[tableName];
-    const cats = ts.categorical || [];
-    // Filter out demographics already shown
-    const shownDemoCols = (tableName === 'cohort') ? new Set(demoKeys) : new Set();
-    const filteredCats = cats.filter(c => !shownDemoCols.has(c.column));
-
-    if (filteredCats.length > 0) {
-      html += `<div class="section-title">${tableName}</div>`;
-      html += '<div class="demo-grid">';
-      for (const cat of filteredCats.slice(0, 4)) {
-        const total = data.total_patients;
-        let rows = '';
-        for (const v of cat.values.slice(0, 8)) {
-          const pct = (v.n != null && total) ? (v.n / total * 100).toFixed(1) + '%' : '';
-          rows += `<tr><td>${v.label}</td><td class="num">${v.suppressed ? '&mdash;' : formatN(v.n)}</td><td class="num">${pct}</td></tr>`;
-        }
-        html += `<div><table><thead><tr><th>${cat.column}</th><th>N</th><th>%</th></tr></thead><tbody>${rows}</tbody></table></div>`;
-      }
-      html += '</div>';
+      const cols = (t.column_names && t.column_names.length > 0)
+        ? t.column_names.join(', ')
+        : `${t.column_count} columns`;
+      html += `<p><strong>${t.name}</strong>: ${cols}</p>`;
     }
   }
 

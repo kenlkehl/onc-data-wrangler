@@ -155,7 +155,7 @@ def generate_summary_stats(
     """
     tables = get_tables(con)
 
-    # Build table list with row/column counts
+    # Build table list with row/column counts and column names
     table_list = []
     for table in tables:
         row_count = get_row_count(con, table)
@@ -164,6 +164,7 @@ def generate_summary_stats(
             "name": table,
             "row_count": row_count,
             "column_count": len(columns),
+            "column_names": columns["column_name"].tolist(),
         })
 
     # Total patients from cohort table (if it exists)

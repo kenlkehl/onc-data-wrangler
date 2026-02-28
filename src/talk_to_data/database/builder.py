@@ -104,6 +104,39 @@ def _table_exists(con, table_name: str) -> bool:
     return result[0] > 0
 
 
+def _insert_aligned(con, table_name: str, df: pd.DataFrame):
+    """Insert a DataFrame into an existing table, aligning columns.
+
+    Adds any new columns from the DataFrame to the table, and fills
+    missing columns with NULL so that schemas always match.
+    """
+    existing_cols = [
+        row[0]
+        for row in con.execute(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_name = ? AND table_schema = 'main'",
+            [table_name],
+        ).fetchall()
+    ]
+
+    # Add columns that exist in the DataFrame but not in the table
+    for col in df.columns:
+        if col not in existing_cols:
+            con.execute(f'ALTER TABLE "{table_name}" ADD COLUMN "{col}" VARCHAR')
+            existing_cols.append(col)
+
+    # Build SELECT with NULLs for columns missing from the DataFrame
+    select_parts = []
+    for col in existing_cols:
+        if col in df.columns:
+            select_parts.append(f'"{col}"')
+        else:
+            select_parts.append(f'NULL AS "{col}"')
+
+    select_clause = ", ".join(select_parts)
+    con.execute(f'INSERT INTO "{table_name}" SELECT {select_clause} FROM df')
+
+
 class DatabaseBuilder:
     """Build a DuckDB database from extracted and harmonized data.
 
@@ -368,9 +401,7 @@ class DatabaseBuilder:
                 group_df = filter_columns_by_non_missing(group_df, self.min_non_missing)
 
                 if _table_exists(con, table_name):
-                    con.execute(
-                        f'INSERT INTO "{table_name}" SELECT * FROM group_df'
-                    )
+                    _insert_aligned(con, table_name, group_df)
                 else:
                     con.execute(
                         f'CREATE TABLE "{table_name}" AS SELECT * FROM group_df'
@@ -415,9 +446,7 @@ class DatabaseBuilder:
             df = filter_columns_by_non_missing(df, self.min_non_missing)
 
             if _table_exists(con, table_name):
-                con.execute(
-                    f'INSERT INTO "{table_name}" SELECT * FROM df'
-                )
+                _insert_aligned(con, table_name, df)
             else:
                 con.execute(
                     f'CREATE TABLE "{table_name}" AS SELECT * FROM df'
