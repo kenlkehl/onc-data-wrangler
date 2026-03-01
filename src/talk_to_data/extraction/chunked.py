@@ -373,6 +373,9 @@ class CheckpointManager:
 
         Reads all rounds, takes each patient's last extraction, flattens
         to row-level format, and saves as extractions.parquet.
+
+        If all extractions are clinical summaries (free-text), saves as
+        summaries.parquet with columns [patient_id, summary] instead.
         """
         # Collect final extraction per patient (last round wins)
         final_extractions: dict[str, list] = {}
@@ -381,7 +384,33 @@ class CheckpointManager:
             for pid, record in round_data.items():
                 final_extractions[pid] = record["extraction"]
 
-        # Flatten to row-level format
+        if not final_extractions:
+            return pd.DataFrame()
+
+        # Check if this is a summary-only extraction
+        is_summary = _is_summary_extraction(final_extractions)
+
+        if is_summary:
+            return self._build_summary_output(final_extractions)
+        return self._build_structured_output(final_extractions)
+
+    def _build_summary_output(self, final_extractions: dict[str, list]) -> pd.DataFrame:
+        """Build output for free-text summary extractions."""
+        from .extractor import _unwrap_summary
+
+        rows = []
+        for patient_id, extraction in final_extractions.items():
+            summary = _unwrap_summary(extraction)
+            rows.append({"patient_id": patient_id, "summary": summary})
+
+        df = pd.DataFrame(rows)
+        out_path = self.output_dir / "summaries.parquet"
+        df.to_parquet(out_path, index=False)
+        logger.info("Saved summaries %s (%d patients)", out_path, len(df))
+        return df
+
+    def _build_structured_output(self, final_extractions: dict[str, list]) -> pd.DataFrame:
+        """Build output for structured JSON extractions."""
         rows = []
         for patient_id, extraction in final_extractions.items():
             for ext in extraction:
@@ -417,8 +446,19 @@ class CheckpointManager:
             legacy.unlink()
         for shard in self.output_dir.glob("shard_*.parquet"):
             shard.unlink()
-        out = self.output_dir / "extractions.parquet"
-        if out.exists():
-            out.unlink()
+        for name in ("extractions.parquet", "summaries.parquet"):
+            out = self.output_dir / name
+            if out.exists():
+                out.unlink()
         for rnd in self.output_dir.glob("round_*.jsonl"):
             rnd.unlink()
+
+
+def _is_summary_extraction(final_extractions: dict[str, list]) -> bool:
+    """Check if extractions are all clinical summaries."""
+    for extraction in final_extractions.values():
+        for entry in extraction:
+            if isinstance(entry, dict) and "clinical_summary" in entry:
+                return True
+            return False  # First non-summary entry means structured
+    return False

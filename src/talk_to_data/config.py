@@ -117,6 +117,25 @@ class ChatbotConfig:
 
 
 @dataclass
+class TrainingConfig:
+    """Configuration for GRPO fine-tuning of the summary model."""
+    model: str = ""
+    reward_llm: LLMConfig = field(default_factory=LLMConfig)
+    reward_vllm_servers: VLLMServerConfig = field(default_factory=VLLMServerConfig)
+    target_ontology_ids: list[str] = field(default_factory=lambda: ["generic_cancer"])
+    learning_rate: float = 1e-6
+    num_epochs: int = 1
+    batch_size: int = 4
+    num_generations: int = 4
+    max_summary_tokens: int = 2048
+    gpus: list[int] = field(default_factory=list)
+    output_dir: str = "./finetuned_model"
+    use_lora: bool = True
+    lora_rank: int = 16
+    max_patients: Optional[int] = None
+
+
+@dataclass
 class ProjectConfig:
     """Top-level project configuration."""
     name: str = "my_project"
@@ -127,6 +146,7 @@ class ProjectConfig:
     database: DatabaseConfig = field(default_factory=DatabaseConfig)
     query: QueryConfig = field(default_factory=QueryConfig)
     chatbot: ChatbotConfig = field(default_factory=ChatbotConfig)
+    training: TrainingConfig = field(default_factory=TrainingConfig)
     max_budget_usd: float = 10.0
     field_mappings: dict[str, Any] = field(default_factory=dict)
     patient_id_columns: dict[str, str] = field(default_factory=dict)
@@ -333,6 +353,19 @@ def load_config(path: str) -> ProjectConfig:
         if llm_dict:
             config.chatbot.llm = _dict_to_llm_config(llm_dict)
 
+    # Training
+    train = raw.get("training", {})
+    if train:
+        reward_llm_dict = train.pop("reward_llm", None)
+        reward_vs_dict = train.pop("reward_vllm_servers", None)
+        known_train = {f.name for f in TrainingConfig.__dataclass_fields__.values()}
+        config.training = TrainingConfig(**{k: v for k, v in train.items() if k in known_train})
+        if reward_llm_dict:
+            config.training.reward_llm = _dict_to_llm_config(reward_llm_dict)
+        if reward_vs_dict:
+            known_vs = {f.name for f in VLLMServerConfig.__dataclass_fields__.values()}
+            config.training.reward_vllm_servers = VLLMServerConfig(**{k: v for k, v in reward_vs_dict.items() if k in known_vs})
+
     # Field mappings
     config.field_mappings = raw.get("field_mappings", {}) or {}
 
@@ -363,6 +396,7 @@ def save_config(config: ProjectConfig, path: str):
         "database": _to_dict(config.database),
         "query": _to_dict(config.query),
         "chatbot": _to_dict(config.chatbot),
+        "training": _to_dict(config.training),
         "field_mappings": config.field_mappings,
         "patient_id_columns": config.patient_id_columns,
     }

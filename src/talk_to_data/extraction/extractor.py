@@ -2,6 +2,9 @@
 
 Takes ontology IDs + optional cancer type to generate extraction prompts.
 Supports both vLLM and Claude backends via the LLM abstraction layer.
+
+When the ``clinical_summary`` ontology is the sole ontology, extraction
+switches to free-text summary mode (see ``SummaryExtractor``).
 """
 
 import json
@@ -173,6 +176,120 @@ class Extractor:
                 cancer_type, max_tokens, max_retries,
             )
         return running
+
+
+class SummaryExtractor:
+    """Free-text clinical summary extractor.
+
+    Produces a running free-text summary instead of structured JSON.
+    Uses the clinical_summary ontology's prompt templates for iterative
+    summarization across chunks.
+
+    The running state is a plain string (the summary so far) rather than
+    a list of dicts.  To fit into the same ``ChunkedExtractor`` pipeline,
+    results are wrapped as ``[{"clinical_summary": {"summary": text}}]``.
+    """
+
+    def __init__(self, llm_client: LLMClient, cancer_type: Optional[str] = "generic"):
+        self.llm_client = llm_client
+        self.cancer_type = cancer_type
+        self._ontology = OntologyRegistry.get("clinical_summary")
+        # Import prompt templates from the ontology module
+        from ..ontologies.builtins.clinical_summary.ontology import (
+            SUMMARY_FIRST_CHUNK,
+            SUMMARY_UPDATE_CHUNK,
+        )
+        self._first_chunk_template = SUMMARY_FIRST_CHUNK
+        self._update_chunk_template = SUMMARY_UPDATE_CHUNK
+
+    def _system_prompt(self) -> str:
+        return self._ontology.format_for_prompt(self.cancer_type)
+
+    def extract_from_text(self, text: str, cancer_type: Optional[str] = None, max_tokens: Optional[int] = 8000) -> list[dict]:
+        """Summarise a single text document."""
+        prompt = self._first_chunk_template.format(
+            system_prompt=self._system_prompt(),
+            chunk_text=text,
+        )
+        response = self.llm_client.generate(prompt, max_tokens=max_tokens)
+        return _wrap_summary(response.text)
+
+    def extract_single_chunk(self, chunk_text: str, running: Optional[list[dict]] = None, chunk_index: int = 0, total_chunks: int = 1, cancer_type: Optional[str] = None, max_tokens: Optional[int] = 8000, max_retries: int = 3) -> list[dict]:
+        """Summarise a single chunk, updating the running summary."""
+        prior_summary = _unwrap_summary(running)
+
+        if chunk_index == 0 and not prior_summary:
+            prompt = self._first_chunk_template.format(
+                system_prompt=self._system_prompt(),
+                chunk_text=chunk_text,
+            )
+        else:
+            prompt = self._update_chunk_template.format(
+                system_prompt=self._system_prompt(),
+                prior_summary=prior_summary,
+                chunk_text=chunk_text,
+            )
+
+        for attempt in range(max_retries):
+            try:
+                response = self.llm_client.generate(prompt, max_tokens=max_tokens)
+                summary_text = response.text.strip()
+                if summary_text:
+                    return _wrap_summary(summary_text)
+            except Exception:
+                logger.exception(
+                    "Summary chunk %d/%d: LLM call failed (attempt %d/%d)",
+                    chunk_index + 1, total_chunks, attempt + 1, max_retries,
+                )
+
+        logger.warning(
+            "Summary chunk %d/%d: all retries failed, keeping previous summary",
+            chunk_index + 1, total_chunks,
+        )
+        return running if running else _wrap_summary("")
+
+    def extract_iterative(self, texts: list[str], cancer_type: Optional[str] = None, max_tokens: Optional[int] = 8000, max_retries: int = 3) -> list[dict]:
+        """Iteratively summarise multiple chunks."""
+        running: list[dict] = []
+        for i, chunk_text in enumerate(texts):
+            running = self.extract_single_chunk(
+                chunk_text, running, i, len(texts),
+                cancer_type, max_tokens, max_retries,
+            )
+        return running
+
+
+def _wrap_summary(text: str) -> list[dict]:
+    """Wrap a plain-text summary into the extraction list format."""
+    return [{"clinical_summary": {"summary": text.strip()}}]
+
+
+def _unwrap_summary(running: Optional[list[dict]]) -> str:
+    """Extract the plain-text summary from the extraction list format."""
+    if not running:
+        return ""
+    for entry in running:
+        if isinstance(entry, dict) and "clinical_summary" in entry:
+            return entry["clinical_summary"].get("summary", "")
+    return ""
+
+
+def is_summary_only(ontology_ids: list[str]) -> bool:
+    """Check if the ontology list consists solely of free-text ontologies."""
+    if not ontology_ids:
+        return False
+    for oid in ontology_ids:
+        ont = OntologyRegistry.get(oid)
+        if not getattr(ont, "is_free_text", False):
+            return False
+    return True
+
+
+def create_extractor(llm_client: LLMClient, ontology_ids: list[str], cancer_type: Optional[str] = "generic"):
+    """Factory that returns a SummaryExtractor or Extractor based on ontology types."""
+    if is_summary_only(ontology_ids):
+        return SummaryExtractor(llm_client, cancer_type)
+    return Extractor(llm_client, ontology_ids, cancer_type)
 
 
 def parse_json_list(text: str) -> list[dict] | None:

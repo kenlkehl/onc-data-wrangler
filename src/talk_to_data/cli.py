@@ -50,6 +50,14 @@ def main():
     p_meta = subparsers.add_parser("metadata", help="Generate schema and summary metadata from database")
     p_meta.add_argument("config", help="Path to project YAML config")
 
+    # finetune
+    p_finetune = subparsers.add_parser("finetune", help="Fine-tune a summary model using GRPO")
+    p_finetune.add_argument("config", help="Path to project YAML config")
+    p_finetune.add_argument("--gpus", default=None, help="Comma-separated GPU IDs (overrides config)")
+    p_finetune.add_argument("--epochs", type=int, default=None, help="Number of training epochs (overrides config)")
+    p_finetune.add_argument("--batch-size", type=int, default=None, help="Training batch size (overrides config)")
+    p_finetune.add_argument("--max-patients", type=int, default=None, help="Limit number of training patients")
+
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 
@@ -105,6 +113,64 @@ def main():
         from .config import load_config
         config = load_config(args.config)
         _run_metadata(config)
+
+    elif args.command == "finetune":
+        from .config import load_config
+        config = load_config(args.config)
+
+        # Apply CLI overrides
+        if args.gpus:
+            config.training.gpus = [int(g) for g in args.gpus.split(",")]
+        if args.epochs is not None:
+            config.training.num_epochs = args.epochs
+        if args.batch_size is not None:
+            config.training.batch_size = args.batch_size
+        if args.max_patients is not None:
+            config.training.max_patients = args.max_patients
+
+        _run_finetune(config)
+
+
+def _run_finetune(config):
+    """Run the GRPO fine-tuning workflow."""
+    import pandas as pd
+    from pathlib import Path
+
+    output_dir = Path(config.output_dir)
+    ext_config = config.extraction
+
+    if not config.training.model:
+        print("ERROR: training.model must be set in config YAML")
+        sys.exit(1)
+
+    # Load notes
+    notes_path = output_dir / "notes.parquet"
+    if not notes_path.exists():
+        notes_path = output_dir / "notes.csv"
+    if not notes_path.exists():
+        notes_path = config.find_file("notes.parquet") or config.find_file("notes.csv")
+
+    if notes_path is None or not Path(notes_path).exists():
+        print("ERROR: No notes file found. Run 'pipeline --stages prepare_notes' first.")
+        sys.exit(1)
+
+    if str(notes_path).endswith(".parquet"):
+        notes_df = pd.read_parquet(notes_path)
+    else:
+        notes_df = pd.read_csv(notes_path, low_memory=False)
+
+    print(f"Loaded {len(notes_df)} notes from {notes_path}")
+
+    # Filter to cohort if available
+    from .agents.pipeline import _load_cohort_ids
+    cohort_ids = _load_cohort_ids(output_dir)
+    if cohort_ids is not None and ext_config.patient_id_column in notes_df.columns:
+        cohort_set = set(str(x) for x in cohort_ids)
+        notes_df = notes_df[notes_df[ext_config.patient_id_column].astype(str).isin(cohort_set)]
+        print(f"Filtered to cohort: {len(notes_df)} notes")
+
+    from .training.grpo_trainer import run_grpo_training
+    run_grpo_training(config, notes_df)
 
 
 if __name__ == "__main__":

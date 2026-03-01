@@ -301,7 +301,7 @@ def _run_prepare_notes(config: ProjectConfig):
 
 def _run_extraction(config: ProjectConfig, resume: bool = False):
     """Run the extraction stage."""
-    from ..extraction.extractor import Extractor
+    from ..extraction.extractor import Extractor, create_extractor
     from ..extraction.chunked import ChunkedExtractor, CheckpointManager, concatenate_patient_notes, chunk_text_by_tokens
     from ..llm.base import LLMClient
     import pandas as pd
@@ -396,8 +396,8 @@ def _run_extraction(config: ProjectConfig, resume: bool = False):
         else:
             llm_client = _create_llm_client(ext_config.llm)
 
-        # Create extractor
-        extractor = Extractor(
+        # Create extractor (SummaryExtractor for free-text ontologies, Extractor otherwise)
+        extractor = create_extractor(
             llm_client=llm_client,
             ontology_ids=ext_config.ontology_ids,
             cancer_type=ext_config.cancer_type,

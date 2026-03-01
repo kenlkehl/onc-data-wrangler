@@ -13,6 +13,11 @@
   - `database/` — DuckDB creation and metadata generation
   - `query/` — SQL validation, privacy, MCP server
   - `web/` — FastAPI chatbot with SSE streaming
+  - `training/` — GRPO fine-tuning for clinical summary models
+    - `grpo_trainer.py` — TRL GRPOTrainer integration
+    - `reward.py` — Reward function (structured extraction F1)
+    - `silver_labels.py` — Silver-standard label generation
+    - `dataset.py` — Training dataset builder
   - `agents/` — Claude Agent SDK orchestration
     - `setup.py` — Interactive setup agent (creates project config)
     - `pipeline.py` — Pipeline orchestration (runs stages)
@@ -33,6 +38,7 @@ uv run talk-to-data pipeline <cfg> --stages cohort extract  # Run specific stage
 uv run talk-to-data serve <cfg>      # Start MCP server
 uv run talk-to-data chat <cfg>       # Start chatbot
 uv run talk-to-data discover /path/to/data  # Interactive field discovery
+uv run talk-to-data finetune <cfg>       # GRPO fine-tune summary model
 ```
 
 ## Key Patterns
@@ -64,4 +70,4 @@ Valid stages (for `--stages` flag): `cohort`, `prepare_notes`, `extract`, `harmo
 
 ## Available Ontologies
 
-naaccr, prissmm, omop, matchminer_ai, msk_chord, pan_top, generic_cancer
+naaccr, prissmm, omop, matchminer_ai, msk_chord, pan_top, generic_cancer, clinical_summary
