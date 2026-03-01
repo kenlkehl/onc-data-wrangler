@@ -123,7 +123,7 @@ def generate_summary(
 
 _SKIP_COLUMN_PATTERNS = {
     "date", "time", "timestamp", "calendar_year", "years_since_birth",
-    "record_id", "patient_id", "id",
+    "record_id", "patient_id", "id", "data_source",
 }
 
 

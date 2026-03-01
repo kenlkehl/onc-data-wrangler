@@ -608,15 +608,17 @@ def _run_propose_tables(config: ProjectConfig):
                     if target and target not in proposed[table_name]["columns"]:
                         proposed[table_name]["columns"].append(target)
 
-    # Check for existing harmonized files
+    # Check for existing harmonized files not already covered by field_mappings
     harmonized_dir = output_dir / "harmonized"
     if harmonized_dir.exists():
+        from ..database.builder import _category_from_harmonized_stem
+        known_categories = (
+            list(config.field_mappings.keys())
+            if config.field_mappings else []
+        )
         for pf in sorted(harmonized_dir.glob("*.parquet")):
-            parts = pf.stem.rsplit("_", 1)
-            if len(parts) > 1:
-                table_name = _table_name_from_category(parts[-1])
-            else:
-                table_name = _table_name_from_category(parts[0])
+            category = _category_from_harmonized_stem(pf.stem, known_categories)
+            table_name = _table_name_from_category(category)
             if table_name not in proposed:
                 proposed[table_name] = {"sources": ["harmonized structured data"], "columns": ["record_id"]}
 

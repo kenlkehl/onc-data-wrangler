@@ -16,6 +16,42 @@ from ..config import ProjectConfig
 
 logger = logging.getLogger(__name__)
 
+# Substrings matched case-insensitively to detect PII columns
+_PII_COLUMN_SUBSTRINGS = {"mrn", "ssn"}
+
+# Exact column names (compared case-insensitively) that are PII
+_PII_COLUMN_NAMES_LOWER = {
+    "last_nm", "first_nm", "middle_nm",
+    "last_name", "first_name", "middle_name",
+    "patient_name", "full_name",
+}
+
+
+def _strip_pii_columns(
+    df: pd.DataFrame, extra_id_columns: set[str] | None = None
+) -> pd.DataFrame:
+    """Remove columns that may contain PII (MRNs, patient names, etc.).
+
+    Acts as a safety net to prevent real identifiers from leaking into
+    the final de-identified database.  Also strips any columns listed in
+    *extra_id_columns* (the configured patient ID column names).
+    """
+    cols_to_drop = []
+    for col in df.columns:
+        lower = col.lower()
+        if lower in _PII_COLUMN_NAMES_LOWER:
+            cols_to_drop.append(col)
+        elif any(pattern in lower for pattern in _PII_COLUMN_SUBSTRINGS):
+            cols_to_drop.append(col)
+        elif extra_id_columns and col in extra_id_columns:
+            cols_to_drop.append(col)
+    if cols_to_drop:
+        logger.warning(
+            "Stripping PII columns: %s", sorted(cols_to_drop)
+        )
+        df = df.drop(columns=cols_to_drop)
+    return df
+
 
 def _load_cohort_ids(output_dir: str) -> list | None:
     """Load original cohort patient IDs, or None if not available."""
@@ -57,7 +93,9 @@ def _deidentify_ids(
             old_id: f"{prefix}_{i:06d}"
             for i, old_id in enumerate(unique_ids, start=1)
         }
-    df[id_column] = df[id_column].map(id_map)
+    # id_map keys are always strings; ensure the column is string-typed
+    # so that integer IDs from structured data match correctly.
+    df[id_column] = df[id_column].astype(str).map(id_map)
     return df
 
 
@@ -70,6 +108,27 @@ def _sanitize_table_name(name: str) -> str:
     if name[0].isdigit():
         name = "t_" + name
     return name
+
+
+def _category_from_harmonized_stem(
+    stem: str, known_categories: list[str]
+) -> str:
+    """Extract the category from a harmonized filename stem.
+
+    Harmonized files are named ``{source_stem}_{category}.parquet``.
+    Since both the source stem and the category can contain underscores,
+    we match against *known_categories* (longest first) to find the
+    correct suffix.  Falls back to the last underscore-delimited word
+    if no known category matches.
+    """
+    # Try longest categories first so e.g. "cancer_systemic_therapy_regimen"
+    # matches before "regimen".
+    for cat in sorted(known_categories, key=len, reverse=True):
+        if stem.endswith("_" + cat) or stem == cat:
+            return cat
+    # Fallback: last underscore segment
+    parts = stem.rsplit("_", 1)
+    return parts[-1] if len(parts) > 1 else stem
 
 
 def _table_name_from_category(category: str) -> str:
@@ -137,6 +196,18 @@ def _insert_aligned(con, table_name: str, df: pd.DataFrame):
     con.execute(f'INSERT INTO "{table_name}" SELECT {select_clause} FROM df')
 
 
+# Columns allowed in the final cohort table.  Everything else from the
+# source patient/demographics files is dropped.
+_COHORT_ALLOWED_COLUMNS = {
+    "record_id",
+    "sex", "race", "ethnicity",
+    "died_yes_or_no",
+    "birth_date",  # kept temporarily; dropped before DB insertion
+    "birth_to_last_followup_or_death_years",
+    "birth_to_death_years",
+}
+
+
 class DatabaseBuilder:
     """Build a DuckDB database from extracted and harmonized data.
 
@@ -153,6 +224,38 @@ class DatabaseBuilder:
         self.deidentify_dates = config.database.deidentify_dates
         self._birth_dates = None
         self._approved_tables: set[str] | None = None
+        self._original_id_columns = self._collect_original_id_columns()
+
+    def _collect_original_id_columns(self) -> set[str]:
+        """Collect all configured patient ID column names to strip.
+
+        These are the *original* column names from source files that should
+        never appear in the final database (the de-identified ``record_id``
+        replaces them).
+        """
+        id_cols: set[str] = set()
+        id_cols.add(self.config.cohort.patient_id_column)
+        id_cols.add(self.config.extraction.patient_id_column)
+        for col in self.config.patient_id_columns.values():
+            id_cols.add(col)
+        # "record_id" is the standardized de-identified name — keep it
+        id_cols.discard("record_id")
+        return id_cols
+
+    def _rename_id_column(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Rename the original patient ID column to ``record_id``.
+
+        Checks each configured patient ID column name; the first one found
+        in the DataFrame is renamed so that downstream de-identification
+        and linkage work correctly.
+        """
+        if "record_id" in df.columns:
+            return df
+        for id_col in self._original_id_columns:
+            if id_col in df.columns:
+                logger.info("Renaming patient ID column '%s' -> 'record_id'", id_col)
+                return df.rename(columns={id_col: "record_id"})
+        return df
 
     def build(self) -> Path:
         """Build the full database. Returns Path to the created DuckDB file."""
@@ -241,8 +344,14 @@ class DatabaseBuilder:
         if harmonized_dir.exists():
             for parquet_file in sorted(harmonized_dir.glob("*.parquet")):
                 df = pd.read_parquet(parquet_file)
+                # Check for record_id or any configured patient ID column
                 if "record_id" in df.columns:
                     all_ids.update(df["record_id"].dropna().unique())
+                else:
+                    for id_col in self._original_id_columns:
+                        if id_col in df.columns:
+                            all_ids.update(df[id_col].dropna().unique())
+                            break
 
         sorted_ids = sorted(str(i) for i in all_ids)
         id_map = {
@@ -299,7 +408,7 @@ class DatabaseBuilder:
         if self._birth_dates is None or "record_id" not in df.columns:
             return df
 
-        skip_columns = {"record_id", "category", "source", "birth_date"}
+        skip_columns = {"record_id", "category", "source", "birth_date", "data_source"}
         date_cols = []
 
         for col in df.columns:
@@ -347,12 +456,23 @@ class DatabaseBuilder:
 
         # Cohort is already de-identified by CohortBuilder — no re-mapping.
 
+        # Keep only the standardized cohort columns (demographics + survival).
+        # Source files often carry dozens of extra columns (addresses, MRNs,
+        # names, etc.) that must not appear in the de-identified database.
+        allowed = _COHORT_ALLOWED_COLUMNS & set(df.columns)
+        dropped = set(df.columns) - allowed
+        if dropped:
+            logger.info("Cohort: keeping only standardized columns, dropping %d extras: %s",
+                        len(dropped), sorted(dropped))
+        df = df[[c for c in df.columns if c in allowed]]
+
         # Drop birth_date from the final cohort table — it was kept in the
         # parquet only so _load_birth_dates can use it for de-identifying
         # dates in extraction/harmonized tables.
         if "birth_date" in df.columns:
             df = df.drop(columns=["birth_date"])
 
+        df = _strip_pii_columns(df, self._original_id_columns)
         df = filter_columns_by_non_missing(df, self.min_non_missing)
 
         con.execute("CREATE TABLE cohort AS SELECT * FROM df")
@@ -376,11 +496,16 @@ class DatabaseBuilder:
         if "patient_id" in df.columns:
             df = df.rename(columns={"patient_id": "record_id"})
 
+        # Rename configured patient ID columns to record_id
+        df = self._rename_id_column(df)
+
         if "record_id" in df.columns:
             df = _deidentify_ids(df, "record_id", self.record_id_prefix, id_map)
 
         if self.deidentify_dates:
             df = self._deidentify_dates_df(df)
+
+        df = _strip_pii_columns(df, self._original_id_columns)
 
         # Create per-category tables
         if "category" in df.columns:
@@ -397,6 +522,8 @@ class DatabaseBuilder:
                 # Drop the category column (redundant — the table name IS the category)
                 if "category" in group_df.columns:
                     group_df = group_df.drop(columns=["category"])
+                # Tag rows as AI-extracted
+                group_df["data_source"] = "ai"
                 # Apply same non-missing filter as cohort/harmonized tables
                 group_df = filter_columns_by_non_missing(group_df, self.min_non_missing)
 
@@ -421,11 +548,17 @@ class DatabaseBuilder:
             logger.warning("No harmonized parquet files found, skipping")
             return
 
+        # Collect known categories from field_mappings config so we can
+        # correctly parse multi-word category suffixes from filenames.
+        known_categories = (
+            list(self.config.field_mappings.keys())
+            if self.config.field_mappings else []
+        )
+
         for parquet_file in parquet_files:
             # Table name from file stem: files are named {source}_{category}.parquet
             stem = parquet_file.stem
-            parts = stem.rsplit("_", 1)
-            category = parts[-1] if len(parts) > 1 else stem
+            category = _category_from_harmonized_stem(stem, known_categories)
             table_name = _table_name_from_category(category)
 
             if not self._is_table_approved(table_name):
@@ -435,6 +568,9 @@ class DatabaseBuilder:
 
             df = pd.read_parquet(parquet_file)
 
+            # Rename configured patient ID columns to record_id
+            df = self._rename_id_column(df)
+
             if "record_id" in df.columns:
                 df = _deidentify_ids(
                     df, "record_id", self.record_id_prefix, id_map
@@ -442,6 +578,11 @@ class DatabaseBuilder:
 
             if self.deidentify_dates:
                 df = self._deidentify_dates_df(df)
+
+            df = _strip_pii_columns(df, self._original_id_columns)
+
+            # Tag rows as coming from structured data
+            df["data_source"] = "structured_data"
 
             df = filter_columns_by_non_missing(df, self.min_non_missing)
 
