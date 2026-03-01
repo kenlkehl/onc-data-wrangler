@@ -58,7 +58,7 @@ chatbot:
   port: 8080
 
 # --- Field Mappings: Map structured data columns to ontology fields ---
-# These can be discovered interactively using `talk-to-data discover`
+# These can be discovered interactively using `onc-data-wrangler discover`
 # or configured manually here.
 field_mappings:
   # diagnosis:

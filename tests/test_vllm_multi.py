@@ -3,10 +3,10 @@ import threading
 from unittest.mock import MagicMock, patch
 import pytest
 
-from talk_to_data.llm.vllm_server import VLLMServerManager, _build_extra_args, _check_gpu_ids
-from talk_to_data.llm.multi_client import MultiVLLMClient
-from talk_to_data.llm.base import LLMResponse
-from talk_to_data.config import load_config, save_config, ProjectConfig
+from onc_data_wrangler.llm.vllm_server import VLLMServerManager, _build_extra_args, _check_gpu_ids
+from onc_data_wrangler.llm.multi_client import MultiVLLMClient
+from onc_data_wrangler.llm.base import LLMResponse
+from onc_data_wrangler.config import load_config, save_config, ProjectConfig
 
 
 class TestGPUSplitting:

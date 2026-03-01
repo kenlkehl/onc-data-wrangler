@@ -398,18 +398,18 @@ information listed below. Never start with data exploration.
 - Show the completed config file path.
 - Tell the user how to run each pipeline stage:
   ```
-  uv run talk-to-data pipeline <config> --stages cohort
-  uv run talk-to-data pipeline <config> --stages prepare_notes
-  uv run talk-to-data pipeline <config> --stages extract
-  uv run talk-to-data pipeline <config> --stages harmonize
-  uv run talk-to-data pipeline <config> --stages propose_tables
-  uv run talk-to-data pipeline <config> --stages database metadata
-  uv run talk-to-data serve <config>
-  uv run talk-to-data chat <config>
+  uv run onc-data-wrangler pipeline <config> --stages cohort
+  uv run onc-data-wrangler pipeline <config> --stages prepare_notes
+  uv run onc-data-wrangler pipeline <config> --stages extract
+  uv run onc-data-wrangler pipeline <config> --stages harmonize
+  uv run onc-data-wrangler pipeline <config> --stages propose_tables
+  uv run onc-data-wrangler pipeline <config> --stages database metadata
+  uv run onc-data-wrangler serve <config>
+  uv run onc-data-wrangler chat <config>
   ```
 - Or run everything at once:
   ```
-  uv run talk-to-data pipeline <config>
+  uv run onc-data-wrangler pipeline <config>
   ```
 
 ## Important Behaviors

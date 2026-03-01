@@ -1,4 +1,4 @@
-"""Command-line interface for Talk-to-Data."""
+"""Command-line interface for Onc-Data-Wrangler."""
 
 import argparse
 import asyncio
@@ -9,8 +9,8 @@ import sys
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
-        prog="talk-to-data",
-        description="Talk-to-Data: Build agentic clinical dataset query systems.",
+        prog="onc-data-wrangler",
+        description="Onc-Data-Wrangler: Build agentic clinical dataset query systems.",
     )
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 

@@ -3702,7 +3702,7 @@ wheels = [
 ]
 
 [[package]]
-name = "talk-to-data"
+name = "onc-data-wrangler"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

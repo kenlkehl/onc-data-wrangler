@@ -1,4 +1,4 @@
-# Talk-to-Data
+# Onc-Data-Wrangler
 
 A general-purpose framework for building agentic clinical dataset query systems.
 Takes raw clinical data (structured tables + unstructured notes), extracts
@@ -22,8 +22,8 @@ privacy-safe analytical database, and exposes it through an interactive chatbot.
 
 ```bash
 # Clone and install with uv
-git clone <repo-url> talk_to_data
-cd talk_to_data
+git clone <repo-url> onc_data_wrangler
+cd onc_data_wrangler
 uv sync
 ```
 
@@ -35,19 +35,19 @@ walks you through an interactive conversation to configure everything:
 ### 1. Run the setup agent
 
 ```bash
-uv run talk-to-data setup /path/to/your/data
+uv run onc-data-wrangler setup /path/to/your/data
 ```
 
 You can point it at one or more files or directories:
 
 ```bash
-uv run talk-to-data setup /path/to/patients.csv /path/to/notes_dir/ /path/to/labs.parquet
+uv run onc-data-wrangler setup /path/to/patients.csv /path/to/notes_dir/ /path/to/labs.parquet
 ```
 
 Optional flags:
 
 ```bash
-uv run talk-to-data setup /path/to/data \
+uv run onc-data-wrangler setup /path/to/data \
     --output-dir ./my_output \          # Where pipeline outputs go (default: ./output)
     --config configs/my_project.yaml \  # Where to save the YAML config
     --max-budget 10.0                   # Max agent budget in USD (default: 10.0)
@@ -70,25 +70,25 @@ Once you have a config file (from setup or by editing `configs/example_project.y
 
 ```bash
 # Run all stages
-uv run talk-to-data pipeline configs/my_project.yaml
+uv run onc-data-wrangler pipeline configs/my_project.yaml
 
 # Or run specific stages
-uv run talk-to-data pipeline configs/my_project.yaml --stages cohort prepare_notes extract harmonize propose_tables database metadata
+uv run onc-data-wrangler pipeline configs/my_project.yaml --stages cohort prepare_notes extract harmonize propose_tables database metadata
 
 # Resume extraction from checkpoint (if previously interrupted)
-uv run talk-to-data pipeline configs/my_project.yaml --stages extract --resume
+uv run onc-data-wrangler pipeline configs/my_project.yaml --stages extract --resume
 ```
 
 ### 3. Start the query server
 
 ```bash
-uv run talk-to-data serve configs/my_project.yaml
+uv run onc-data-wrangler serve configs/my_project.yaml
 ```
 
 ### 4. Start the chatbot
 
 ```bash
-uv run talk-to-data chat configs/my_project.yaml
+uv run onc-data-wrangler chat configs/my_project.yaml
 # Open http://localhost:8080 in your browser
 ```
 
@@ -109,7 +109,7 @@ uv run talk-to-data chat configs/my_project.yaml
 Use the discovery agent to interactively explore your data and create field mappings:
 
 ```bash
-uv run talk-to-data discover /path/to/data --ontologies naaccr pan_top
+uv run onc-data-wrangler discover /path/to/data --ontologies naaccr pan_top
 ```
 
 The agent will explore your CSV/parquet files, identify relevant columns, and
@@ -178,10 +178,10 @@ training:
 
 ```bash
 # Basic usage
-uv run talk-to-data finetune configs/my_project.yaml
+uv run onc-data-wrangler finetune configs/my_project.yaml
 
 # With CLI overrides
-uv run talk-to-data finetune configs/my_project.yaml \
+uv run onc-data-wrangler finetune configs/my_project.yaml \
     --gpus 0,1,2,3 \
     --epochs 2 \
     --batch-size 8 \
@@ -267,5 +267,5 @@ uv sync --extra dev
 uv run pytest tests/
 
 # Run a single module
-uv run python -m talk_to_data.query.mcp_server configs/my_project.yaml
+uv run python -m onc_data_wrangler.query.mcp_server configs/my_project.yaml
 ```

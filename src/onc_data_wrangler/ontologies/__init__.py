@@ -14,7 +14,7 @@ Supported Ontologies:
 - generic_cancer: Cancer-type-agnostic data extraction
 
 Usage:
-    from talk_to_data.ontologies import OntologyRegistry, MultiOntologyExtractor
+    from onc_data_wrangler.ontologies import OntologyRegistry, MultiOntologyExtractor
 
     # Get a single ontology
     naaccr = OntologyRegistry.get('naaccr')

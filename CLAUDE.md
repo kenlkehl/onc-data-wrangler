@@ -1,8 +1,8 @@
-# Talk-to-Data Developer Guide
+# Onc-Data-Wrangler Developer Guide
 
 ## Project Structure
 
-- `src/talk_to_data/` — Main package
+- `src/onc_data_wrangler/` — Main package
   - `config.py` — YAML configuration dataclasses
   - `cli.py` — CLI entry point with subcommands
   - `llm/` — LLM backend abstraction (vLLM, Claude)
@@ -31,14 +31,14 @@
 ```bash
 uv sync                              # Install dependencies
 uv run pytest tests/                 # Run tests
-uv run talk-to-data --help           # CLI help
-uv run talk-to-data setup /path/to/data  # Interactive project setup
-uv run talk-to-data pipeline <cfg>   # Run pipeline
-uv run talk-to-data pipeline <cfg> --stages cohort extract  # Run specific stages
-uv run talk-to-data serve <cfg>      # Start MCP server
-uv run talk-to-data chat <cfg>       # Start chatbot
-uv run talk-to-data discover /path/to/data  # Interactive field discovery
-uv run talk-to-data finetune <cfg>       # GRPO fine-tune summary model
+uv run onc-data-wrangler --help           # CLI help
+uv run onc-data-wrangler setup /path/to/data  # Interactive project setup
+uv run onc-data-wrangler pipeline <cfg>   # Run pipeline
+uv run onc-data-wrangler pipeline <cfg> --stages cohort extract  # Run specific stages
+uv run onc-data-wrangler serve <cfg>      # Start MCP server
+uv run onc-data-wrangler chat <cfg>       # Start chatbot
+uv run onc-data-wrangler discover /path/to/data  # Interactive field discovery
+uv run onc-data-wrangler finetune <cfg>       # GRPO fine-tune summary model
 ```
 
 ## Key Patterns

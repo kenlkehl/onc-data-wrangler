@@ -60,7 +60,7 @@ class OntologyRegistry:
         ontology_packages = ('naaccr', 'matchminer_ai', 'prissmm', 'omop', 'msk_chord', 'pan_top', 'generic_cancer', 'clinical_summary')
         for package_name in ontology_packages:
             try:
-                importlib.import_module(f".builtins.{package_name}", package="talk_to_data.ontologies")
+                importlib.import_module(f".builtins.{package_name}", package="onc_data_wrangler.ontologies")
             except ImportError:
                 pass
 
