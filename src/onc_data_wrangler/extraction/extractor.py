@@ -280,7 +280,7 @@ def is_summary_only(ontology_ids: list[str]) -> bool:
         return False
     for oid in ontology_ids:
         ont = OntologyRegistry.get(oid)
-        if not getattr(ont, "is_free_text", False):
+        if not ont.is_free_text:
             return False
     return True
 

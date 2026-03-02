@@ -16,8 +16,9 @@ from ...base import OntologyBase, DataItem, DataCategory
 class ClinicalSummaryOntology(OntologyBase):
     """Ontology that produces free-text clinical summaries."""
 
-    # Flag used by the extractor to switch to free-text mode
-    is_free_text = True
+    @property
+    def is_free_text(self) -> bool:
+        return True
 
     @property
     def ontology_id(self) -> str:

@@ -63,6 +63,11 @@ class OntologyBase(ABC):
         ...
 
     @property
+    def is_free_text(self) -> bool:
+        """Whether this ontology produces free-text output instead of structured JSON."""
+        return False
+
+    @property
     def description(self) -> str:
         """Short description for display in setup/selection UI."""
         return self.display_name
