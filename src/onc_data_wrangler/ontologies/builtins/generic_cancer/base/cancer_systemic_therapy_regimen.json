@@ -1,0 +1,34 @@
+{
+  "category": "cancer_systemic_therapy_regimen",
+  "description": "Systemic therapy regimens administered to the patient. Only extract regimens actually administered, not discussed options.",
+  "items": [
+    {
+      "name": "Regimen Drug List",
+      "json_field": "regimen_drug_list",
+      "description": "List of individual drug names in the regimen",
+      "data_type": "array",
+      "extraction_hints": ["carboplatin", "cisplatin", "doxorubicin", "cyclophosphamide", "paclitaxel", "docetaxel", "5-FU", "fluorouracil", "capecitabine", "gemcitabine", "irinotecan", "oxaliplatin", "pemetrexed", "etoposide", "pembrolizumab", "nivolumab", "atezolizumab", "durvalumab", "ipilimumab", "trastuzumab", "bevacizumab", "rituximab", "cetuximab", "tamoxifen", "letrozole", "anastrozole", "enzalutamide", "abiraterone", "osimertinib", "erlotinib", "crizotinib", "imatinib", "lenalidomide", "ibrutinib", "venetoclax", "olaparib", "temozolomide", "vincristine", "methotrexate", "FOLFOX", "FOLFIRI"]
+    },
+    {
+      "name": "Regimen Start Date",
+      "json_field": "regimen_start_date",
+      "description": "Start date of the regimen, as specific as is known. Format YYYY-MM-DD when possible.",
+      "data_type": "date",
+      "extraction_hints": ["started", "initiated", "began", "start date"]
+    },
+    {
+      "name": "Regimen End Date",
+      "json_field": "regimen_end_date",
+      "description": "End date of the regimen, as specific as is known. Format YYYY-MM-DD when possible.",
+      "data_type": "date",
+      "extraction_hints": ["completed", "discontinued", "stopped", "end date", "last dose"]
+    },
+    {
+      "name": "Regimen Toxicity List",
+      "json_field": "regimen_toxicity_list",
+      "description": "List of individual toxicities experienced with this regimen",
+      "data_type": "array",
+      "extraction_hints": ["toxicity", "adverse event", "side effect", "nausea", "fatigue", "pneumonitis", "rash", "neuropathy", "neutropenia", "thrombocytopenia", "diarrhea", "mucositis", "hand-foot syndrome", "hepatotoxicity", "nephrotoxicity", "cardiotoxicity"]
+    }
+  ]
+}

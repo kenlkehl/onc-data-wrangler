@@ -1,0 +1,27 @@
+{
+  "category": "cancer_biomarker",
+  "description": "Cancer biomarker testing results. Note that EGFR should only refer to an EGFR mutation, not estimated GFR (which is kidney function). PSA refers to prostate-specific antigen testing for prostate cancer.",
+  "items": [
+    {
+      "name": "Biomarker Type",
+      "json_field": "biomarker_type",
+      "description": "Type of biomarker assay (e.g., mutation, rearrangement, expression, amplification, serum_marker)",
+      "data_type": "string",
+      "extraction_hints": ["mutation", "rearrangement", "fusion", "expression", "amplification", "IHC", "FISH", "NGS", "serum marker", "receptor status"]
+    },
+    {
+      "name": "Biomarker Tested",
+      "json_field": "biomarker_tested",
+      "description": "Name of the biomarker tested",
+      "data_type": "string",
+      "extraction_hints": ["ER", "PR", "HER2", "BRCA1", "BRCA2", "MSI", "MMR", "KRAS", "NRAS", "BRAF", "PIK3CA", "EGFR", "ALK", "ROS1", "PD-L1", "TMB", "NTRK", "RET", "MET", "FGFR", "IDH1", "IDH2", "PSA", "CEA", "CA-125", "AFP", "TTF-1", "p40", "Ki-67", "p53", "BCR-ABL", "CD20", "CD30"]
+    },
+    {
+      "name": "Biomarker Result",
+      "json_field": "biomarker_result",
+      "description": "Result of the biomarker test (e.g., positive, negative, 60%, L858R mutant, CD74-ROS1 fusion, MSI-high)",
+      "data_type": "string",
+      "extraction_hints": ["positive", "negative", "detected", "not detected", "mutant", "wild type", "fusion", "high", "low", "stable", "unstable", "amplified", "overexpressed"]
+    }
+  ]
+}

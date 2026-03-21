@@ -1,0 +1,39 @@
+{
+  "category_id": "surgery",
+  "category_name": "Surgery and Interventional Radiology",
+  "description": "Timeline of surgical procedures and interventional radiology",
+  "items": [
+    {
+      "id": "surgery_date",
+      "name": "Procedure Date",
+      "description": "Date of surgical or IR procedure",
+      "data_type": "date",
+      "column_name": "START_DATE"
+    },
+    {
+      "id": "surgery_type",
+      "name": "Procedure Type",
+      "description": "Type of procedure (Surgery or IR)",
+      "data_type": "string",
+      "column_name": "SUBTYPE",
+      "valid_values": {
+        "Surgery": "Surgical procedure",
+        "IR": "Interventional radiology procedure"
+      }
+    },
+    {
+      "id": "surgery_description",
+      "name": "Procedure Description",
+      "description": "Description of the procedure performed",
+      "data_type": "string",
+      "column_name": "DESCRIPTION"
+    },
+    {
+      "id": "surgery_site",
+      "name": "Procedure Site",
+      "description": "Anatomic site of procedure",
+      "data_type": "string",
+      "column_name": "ANATOMIC_SITE"
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "category_id": "treatment",
+  "category_name": "Anti-Cancer Medications",
+  "description": "Timeline of anti-cancer medications administered at MSK",
+  "items": [
+    {
+      "id": "treatment_start_date",
+      "name": "Start Date",
+      "description": "Earliest date this medication was taken",
+      "data_type": "date",
+      "column_name": "START_DATE"
+    },
+    {
+      "id": "treatment_end_date",
+      "name": "End Date",
+      "description": "Latest date this medication was taken",
+      "data_type": "date",
+      "column_name": "STOP_DATE"
+    },
+    {
+      "id": "agent",
+      "name": "Drug Name",
+      "description": "Generic MULTUM name for formulary drugs or keyword for non-formulary",
+      "data_type": "string",
+      "column_name": "AGENT"
+    },
+    {
+      "id": "medication_type",
+      "name": "Medication Type",
+      "description": "Type of anti-cancer medication",
+      "data_type": "string",
+      "column_name": "SUBTYPE",
+      "valid_values": {
+        "Chemo": "Chemotherapy",
+        "Hormone": "Hormone therapy",
+        "Targeted": "Targeted therapy",
+        "Biologic": "Biologic therapy",
+        "Immuno": "Immunotherapy",
+        "Bone Therapy": "Bone agents",
+        "Other": "Other anti-cancer therapy",
+        "Investigational": "Investigational/clinical trial drug"
+      }
+    },
+    {
+      "id": "rx_investigative",
+      "name": "Investigational Drug Flag",
+      "description": "Indicates if drug was investigational/trial drug",
+      "data_type": "boolean",
+      "column_name": "RX_INVESTIGATIVE"
+    }
+  ]
+}

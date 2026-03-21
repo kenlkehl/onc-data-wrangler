@@ -1,0 +1,524 @@
+"""Command-line interface for Onc-Data-Wrangler."""
+
+import argparse
+import asyncio
+import logging
+import sys
+
+
+def main():
+    """Main CLI entry point."""
+    parser = argparse.ArgumentParser(
+        prog="onc-data-wrangler",
+        description="Onc-Data-Wrangler: Build agentic clinical dataset query systems.",
+    )
+    subparsers = parser.add_subparsers(dest="command", help="Available commands")
+
+    # pipeline
+    p_pipeline = subparsers.add_parser("pipeline", help="Run the data processing pipeline")
+    p_pipeline.add_argument("config", help="Path to project YAML config")
+    p_pipeline.add_argument("--stages", nargs="+", choices=("cohort", "prepare_notes", "extract", "harmonize", "propose_tables", "database", "metadata"), help="Stages to run (default: all)")
+    p_pipeline.add_argument("--resume", action="store_true", help="Resume extraction from checkpoint")
+
+    # serve
+    p_serve = subparsers.add_parser("serve", help="Start the MCP query server")
+    p_serve.add_argument("config", nargs="?", help="Path to project YAML config")
+    p_serve.add_argument("--host", default=None, help="Server host")
+    p_serve.add_argument("--port", type=int, default=None, help="Server port")
+
+    # chat
+    p_chat = subparsers.add_parser("chat", help="Start the web chatbot")
+    p_chat.add_argument("config", nargs="?", help="Path to project YAML config")
+    p_chat.add_argument("--host", default=None, help="Server host")
+    p_chat.add_argument("--port", type=int, default=None, help="Server port")
+
+    # setup
+    p_setup = subparsers.add_parser("setup", help="Interactive agentic walkthrough to configure a new project")
+    p_setup.add_argument("data_paths", nargs="*", default=[], help="Files and/or directories with source data (asked interactively if omitted)")
+    p_setup.add_argument("--output-dir", default=None, help="Directory for pipeline outputs (asked interactively if omitted)")
+    p_setup.add_argument("--config", default=None, help="Path for the generated config YAML (asked interactively if omitted)")
+    p_setup.add_argument("--max-budget", type=float, default=10.0, help="Maximum agent budget in USD (default: 10.0)")
+    p_setup.add_argument("--provider", choices=["claude", "ollama"], default="claude", help="LLM provider for the setup agent (default: claude)")
+    p_setup.add_argument("--model", default=None, help="Model name (required for ollama, e.g. llama3.1:70b)")
+    p_setup.add_argument("--ollama-url", default="http://localhost:11434", help="Ollama server URL (default: http://localhost:11434)")
+
+    # discover
+    p_discover = subparsers.add_parser("discover", help="Run the field discovery agent")
+    p_discover.add_argument("data_paths", nargs="+", help="Files and/or directories with source data")
+    p_discover.add_argument("--ontologies", nargs="+", default=["naaccr"], help="Ontology IDs to match against")
+    p_discover.add_argument("--output", default=None, help="Path to save discovered field mappings")
+    p_discover.add_argument("--max-budget", type=float, default=10.0, help="Maximum agent budget in USD (default: 10.0)")
+
+    # metadata
+    p_meta = subparsers.add_parser("metadata", help="Generate schema and summary metadata from database")
+    p_meta.add_argument("config", help="Path to project YAML config")
+
+    # ui
+    p_ui = subparsers.add_parser("ui", help="Start the web UI (setup wizard + pipeline dashboard + chatbot)")
+    p_ui.add_argument("config", nargs="?", default=None, help="Path to project YAML config (optional for setup mode)")
+    p_ui.add_argument("--host", default="0.0.0.0", help="Server host")
+    p_ui.add_argument("--port", type=int, default=8080, help="Server port")
+
+    # extract (standalone)
+    p_extract = subparsers.add_parser("extract", help="Extract structured data from a notes file (no config needed)")
+    p_extract.add_argument("input", help="Input file: .txt (single note), .csv, or .parquet (tabular with text column)")
+    p_extract.add_argument("-o", "--output", default=None, help="Output file path (default: <input>_extractions.json)")
+    p_extract.add_argument("--ontology", nargs="+", default=["naaccr"], help="Ontology IDs to extract (default: naaccr)")
+    p_extract.add_argument("--cancer-type", default="generic", help="Cancer type for site-specific items (default: generic)")
+    p_extract.add_argument("--vllm-url", default=None, help="vLLM server URL (e.g. http://localhost:8000/v1)")
+    p_extract.add_argument("--model", default=None, help="Model name on the vLLM server")
+    p_extract.add_argument("--provider", choices=["openai", "anthropic", "vertex"], default="openai", help="LLM provider (default: openai)")
+    p_extract.add_argument("--api-key", default=None, help="API key (or set OPENAI_API_KEY / ANTHROPIC_API_KEY env var)")
+    p_extract.add_argument("--text-column", default="text", help="Column containing note text (for CSV/parquet, default: text)")
+    p_extract.add_argument("--patient-id-column", default="patient_id", help="Column containing patient IDs (for CSV/parquet, default: patient_id)")
+    p_extract.add_argument("--date-column", default="date", help="Column containing note dates (for CSV/parquet, default: date)")
+    p_extract.add_argument("--items-per-call", type=int, default=50, help="Fields per LLM call (default: 50)")
+    p_extract.add_argument("--format", choices=["json", "csv", "naaccr-xml", "naaccr-csv"], default="json", help="Output format (default: json)")
+    p_extract.add_argument("--max-tokens", type=int, default=16384, help="Max output tokens per LLM call (default: 16384)")
+    p_extract.add_argument("--chunk-tokens", type=int, default=40000, help="Tokens per text chunk (default: 40000)")
+
+    # finetune
+    p_finetune = subparsers.add_parser("finetune", help="Fine-tune a summary model using GRPO")
+    p_finetune.add_argument("config", help="Path to project YAML config")
+    p_finetune.add_argument("--gpus", default=None, help="Comma-separated GPU IDs (overrides config)")
+    p_finetune.add_argument("--epochs", type=int, default=None, help="Number of training epochs (overrides config)")
+    p_finetune.add_argument("--batch-size", type=int, default=None, help="Training batch size (overrides config)")
+    p_finetune.add_argument("--max-patients", type=int, default=None, help="Limit number of training patients")
+
+    args = parser.parse_args()
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
+
+    if not args.command:
+        parser.print_help()
+        sys.exit(1)
+
+    if args.command == "pipeline":
+        from .agents.pipeline import run_pipeline
+        run_pipeline(config_path=args.config, stages=args.stages, resume=args.resume)
+
+    elif args.command == "serve":
+        from .query.mcp_server import create_server_from_config
+        from .config import load_config
+        config = load_config(args.config)
+        if args.host:
+            config.query.mcp_host = args.host
+        if args.port:
+            config.query.mcp_port = args.port
+        mcp = create_server_from_config(config)
+        mcp.run(transport="streamable-http")
+
+    elif args.command == "chat":
+        from .web.app import create_app_from_config
+        from .config import load_config
+        config = load_config(args.config)
+        app = create_app_from_config(config)
+        HOST = args.host or config.chatbot.host
+        PORT = args.port or config.chatbot.port
+        import uvicorn
+        uvicorn.run(app, host=HOST, port=PORT)
+
+    elif args.command == "setup":
+        from .agents.setup import run_setup_agent
+
+        provider = args.provider
+        model = args.model
+        ollama_url = args.ollama_url
+
+        # Interactive model selection for Ollama when --model not specified
+        if provider == "ollama" and not model:
+            model = _select_ollama_model(ollama_url)
+            if model is None:
+                sys.exit(1)
+
+        run_setup_agent(
+            data_paths=args.data_paths or None,
+            output_dir=args.output_dir,
+            config_path=args.config,
+            max_budget_usd=args.max_budget,
+            provider=provider,
+            model=model,
+            ollama_base_url=ollama_url,
+        )
+
+    elif args.command == "discover":
+        from .agents.discovery import run_discovery_agent
+        asyncio.run(run_discovery_agent(
+            data_paths=args.data_paths,
+            ontology_ids=args.ontologies,
+            output_config_path=args.output,
+            max_budget_usd=args.max_budget,
+        ))
+
+    elif args.command == "ui":
+        from .web.app import create_ui_app
+        from .config import load_config as _load_config
+        config = _load_config(args.config) if args.config else None
+        app = create_ui_app(config)
+        import uvicorn
+        uvicorn.run(app, host=args.host, port=args.port)
+
+    elif args.command == "extract":
+        _run_standalone_extract(args)
+
+    elif args.command == "metadata":
+        from .agents.pipeline import _run_metadata
+        from .config import load_config
+        config = load_config(args.config)
+        _run_metadata(config)
+
+    elif args.command == "finetune":
+        from .config import load_config
+        config = load_config(args.config)
+
+        # Apply CLI overrides
+        if args.gpus:
+            config.training.gpus = [int(g) for g in args.gpus.split(",")]
+        if args.epochs is not None:
+            config.training.num_epochs = args.epochs
+        if args.batch_size is not None:
+            config.training.batch_size = args.batch_size
+        if args.max_patients is not None:
+            config.training.max_patients = args.max_patients
+
+        _run_finetune(config)
+
+
+def _run_standalone_extract(args):
+    """Run extraction directly from a notes file without a project config."""
+    import json as _json
+    from pathlib import Path
+
+    import pandas as pd
+
+    input_path = Path(args.input)
+    if not input_path.exists():
+        print(f"ERROR: Input file not found: {input_path}")
+        sys.exit(1)
+
+    # --- Determine input type and load text ---
+    suffix = input_path.suffix.lower()
+
+    if suffix == ".txt":
+        # Single text file
+        text = input_path.read_text(encoding="utf-8")
+        patients = {input_path.stem: [text]}
+        print(f"Loaded single text file: {len(text):,} characters")
+
+    elif suffix in (".csv", ".tsv"):
+        sep = "\t" if suffix == ".tsv" else ","
+        df = pd.read_csv(input_path, sep=sep, low_memory=False)
+        patients = _group_notes(df, args.patient_id_column, args.text_column, args.date_column)
+        print(f"Loaded {len(df)} rows, {len(patients)} patients from {input_path.name}")
+
+    elif suffix == ".parquet":
+        df = pd.read_parquet(input_path)
+        patients = _group_notes(df, args.patient_id_column, args.text_column, args.date_column)
+        print(f"Loaded {len(df)} rows, {len(patients)} patients from {input_path.name}")
+
+    else:
+        # Treat as plain text
+        text = input_path.read_text(encoding="utf-8")
+        patients = {input_path.stem: [text]}
+        print(f"Loaded as text: {len(text):,} characters")
+
+    # --- Create LLM client ---
+    llm_client = _create_standalone_llm(args)
+
+    # --- Create extractor ---
+    from .extraction.extractor import create_extractor
+
+    extractor = create_extractor(
+        llm_client=llm_client,
+        ontology_ids=args.ontology,
+        cancer_type=args.cancer_type,
+        items_per_call=args.items_per_call,
+    )
+
+    print(f"Extracting with ontologies: {', '.join(args.ontology)}")
+    print(f"Cancer type: {args.cancer_type}")
+
+    # --- Optionally chunk long texts ---
+    tokenizer = None
+    try:
+        from transformers import AutoTokenizer
+        model_name = args.model or "gpt2"
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+    except Exception:
+        pass
+
+    # --- Run extraction ---
+    all_results = {}
+    for i, (pid, texts) in enumerate(patients.items()):
+        print(f"  [{i+1}/{len(patients)}] Patient {pid}: {len(texts)} notes, {sum(len(t) for t in texts):,} chars")
+
+        if tokenizer and len(texts) == 1 and len(texts[0]) > args.chunk_tokens * 4:
+            from .extraction.chunked import chunk_text_by_tokens
+            chunks = chunk_text_by_tokens(texts[0], tokenizer, args.chunk_tokens)
+        else:
+            chunks = texts
+
+        result = extractor.extract_iterative(
+            chunks,
+            cancer_type=args.cancer_type,
+            max_tokens=args.max_tokens,
+        )
+        all_results[pid] = result
+
+    # --- Write output ---
+    output_path = Path(args.output) if args.output else input_path.with_name(f"{input_path.stem}_extractions.json")
+    fmt = args.format
+
+    if fmt == "json":
+        with open(output_path, "w") as f:
+            _json.dump(all_results, f, indent=2, default=str)
+        print(f"Written: {output_path}")
+
+    elif fmt == "csv":
+        rows = []
+        for pid, result_list in all_results.items():
+            for entry in result_list:
+                if not isinstance(entry, dict):
+                    continue
+                for category, fields in entry.items():
+                    if category.startswith("_") or not isinstance(fields, dict):
+                        continue
+                    for field_name, value in fields.items():
+                        if field_name.startswith("_"):
+                            continue
+                        rows.append({
+                            "patient_id": pid,
+                            "category": category,
+                            "field": field_name,
+                            "value": value,
+                        })
+        out_df = pd.DataFrame(rows)
+        csv_path = output_path.with_suffix(".csv") if output_path.suffix != ".csv" else output_path
+        out_df.to_csv(csv_path, index=False)
+        print(f"Written: {csv_path} ({len(rows)} rows)")
+
+    elif fmt == "naaccr-xml":
+        if "naaccr" not in args.ontology:
+            print("ERROR: --format naaccr-xml requires --ontology naaccr")
+            sys.exit(1)
+        from .output.naaccr_writer import NAACCRWriter
+        from .ontologies.builtins.naaccr.dictionary import NAACCRDictionary
+        dictionary = NAACCRDictionary()
+        dictionary.load()
+        writer = NAACCRWriter(dictionary)
+        # Convert to {patient_id: {item_number_str: value}} format
+        naaccr_results = _flatten_for_naaccr(all_results)
+        xml_path = output_path.with_suffix(".xml") if output_path.suffix != ".xml" else output_path
+        writer.write_xml(naaccr_results, xml_path)
+        print(f"Written: {xml_path}")
+
+    elif fmt == "naaccr-csv":
+        if "naaccr" not in args.ontology:
+            print("ERROR: --format naaccr-csv requires --ontology naaccr")
+            sys.exit(1)
+        from .output.naaccr_writer import NAACCRWriter
+        from .ontologies.builtins.naaccr.dictionary import NAACCRDictionary
+        dictionary = NAACCRDictionary()
+        dictionary.load()
+        writer = NAACCRWriter(dictionary)
+        naaccr_results = _flatten_for_naaccr(all_results)
+        csv_path = output_path.with_suffix(".csv") if output_path.suffix != ".csv" else output_path
+        writer.write_csv(naaccr_results, csv_path)
+        print(f"Written: {csv_path}")
+
+    # --- Also write metadata if available ---
+    meta_rows = []
+    for pid, result_list in all_results.items():
+        for entry in result_list:
+            if isinstance(entry, dict) and "_extraction_results" in entry:
+                for fid, r in entry["_extraction_results"].items():
+                    meta_rows.append({
+                        "patient_id": pid,
+                        "field_id": fid,
+                        "field_name": r.get("field_name", ""),
+                        "extracted_value": r.get("extracted_value", ""),
+                        "resolved_code": r.get("resolved_code", ""),
+                        "confidence": r.get("confidence", 0),
+                        "evidence": r.get("evidence_text", ""),
+                        "ontology_id": r.get("ontology_id", ""),
+                    })
+    if meta_rows:
+        meta_path = output_path.with_name(f"{output_path.stem}_metadata.csv")
+        pd.DataFrame(meta_rows).to_csv(meta_path, index=False)
+        print(f"Metadata: {meta_path} ({len(meta_rows)} field extractions)")
+
+    print("Done.")
+
+
+def _create_standalone_llm(args):
+    """Create an LLM client from CLI arguments."""
+    import os
+
+    provider = args.provider
+
+    if provider == "openai":
+        from .llm.vllm_client import VLLMClient
+        base_url = args.vllm_url or "http://localhost:8000/v1"
+        api_key = args.api_key or os.environ.get("OPENAI_API_KEY", "none")
+        model = args.model or "default"
+        return VLLMClient(base_url=base_url, api_key=api_key, model=model)
+
+    elif provider in ("anthropic", "vertex"):
+        from .llm.claude_client import ClaudeClient
+        api_key = args.api_key or os.environ.get("ANTHROPIC_API_KEY", "")
+        model = args.model or "claude-sonnet-4-20250514"
+        return ClaudeClient(provider=provider, model=model, api_key=api_key)
+
+    else:
+        print(f"ERROR: Unknown provider: {provider}")
+        sys.exit(1)
+
+
+def _group_notes(df, patient_id_col: str, text_col: str, date_col: str) -> dict[str, list[str]]:
+    """Group a DataFrame of notes by patient ID, concatenating chronologically."""
+    patients: dict[str, list[str]] = {}
+
+    if patient_id_col not in df.columns:
+        # No patient ID column -- treat entire file as one patient
+        texts = df[text_col].dropna().astype(str).tolist() if text_col in df.columns else []
+        patients["patient_0"] = texts
+        return patients
+
+    if date_col in df.columns:
+        df = df.sort_values(by=[patient_id_col, date_col])
+
+    for pid, group in df.groupby(patient_id_col):
+        if text_col not in group.columns:
+            continue
+        texts = group[text_col].dropna().astype(str).tolist()
+        texts = [t for t in texts if len(t.strip()) > 10]
+        if texts:
+            patients[str(pid)] = texts
+
+    return patients
+
+
+def _flatten_for_naaccr(all_results: dict) -> dict[str, dict[str, str]]:
+    """Convert extraction results to {patient_id: {item_number_str: value}} for NAACCRWriter."""
+    naaccr_data: dict[str, dict[str, str]] = {}
+    for pid, result_list in all_results.items():
+        items: dict[str, str] = {}
+        for entry in result_list:
+            if not isinstance(entry, dict):
+                continue
+            if "_extraction_results" in entry:
+                for fid, r in entry["_extraction_results"].items():
+                    if r.get("ontology_id") == "naaccr":
+                        items[fid] = r.get("resolved_code", "") or r.get("extracted_value", "")
+            else:
+                for category, fields in entry.items():
+                    if category.startswith("_") or not isinstance(fields, dict):
+                        continue
+                    for field_name, value in fields.items():
+                        items[field_name] = str(value)
+        if items:
+            naaccr_data[pid] = items
+    return naaccr_data
+
+
+def _select_ollama_model(ollama_url: str) -> str | None:
+    """Interactively select an Ollama model. Returns model name or None on failure."""
+    import urllib.request
+    import json as _json
+
+    tags_url = f"{ollama_url.rstrip('/')}/api/tags"
+    print(f"\nChecking Ollama server at {ollama_url}...")
+    try:
+        with urllib.request.urlopen(tags_url, timeout=5) as resp:
+            data = _json.loads(resp.read())
+    except Exception as exc:
+        print(
+            f"\nError: Cannot reach Ollama at {ollama_url}.\n"
+            f"Ensure Ollama is installed and running (`ollama serve`).\n"
+            f"Details: {exc}"
+        )
+        return None
+
+    models = data.get("models", [])
+    if not models:
+        print(
+            "\nNo models found on the Ollama server.\n"
+            "Pull a model first: ollama pull llama3.1:70b"
+        )
+        return None
+
+    print(f"\nAvailable Ollama models:")
+    for i, m in enumerate(models, 1):
+        name = m.get("name", "unknown")
+        size_bytes = m.get("size", 0)
+        size_gb = size_bytes / (1024 ** 3)
+        print(f"  [{i}] {name}  ({size_gb:.1f} GB)")
+
+    while True:
+        try:
+            choice = input("\nSelect a model number, or type a model name: ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            return None
+        if not choice:
+            continue
+        # Try as a number
+        try:
+            idx = int(choice)
+            if 1 <= idx <= len(models):
+                selected = models[idx - 1]["name"]
+                print(f"Using model: {selected}")
+                return selected
+            else:
+                print(f"Please enter a number between 1 and {len(models)}.")
+                continue
+        except ValueError:
+            pass
+        # Use as a model name directly
+        print(f"Using model: {choice}")
+        return choice
+
+
+def _run_finetune(config):
+    """Run the GRPO fine-tuning workflow."""
+    import pandas as pd
+    from pathlib import Path
+
+    output_dir = Path(config.output_dir)
+    ext_config = config.extraction
+
+    if not config.training.model:
+        print("ERROR: training.model must be set in config YAML")
+        sys.exit(1)
+
+    # Load notes
+    notes_path = output_dir / "notes.parquet"
+    if not notes_path.exists():
+        notes_path = output_dir / "notes.csv"
+    if not notes_path.exists():
+        notes_path = config.find_file("notes.parquet") or config.find_file("notes.csv")
+
+    if notes_path is None or not Path(notes_path).exists():
+        print("ERROR: No notes file found. Run 'pipeline --stages prepare_notes' first.")
+        sys.exit(1)
+
+    if str(notes_path).endswith(".parquet"):
+        notes_df = pd.read_parquet(notes_path)
+    else:
+        notes_df = pd.read_csv(notes_path, low_memory=False)
+
+    print(f"Loaded {len(notes_df)} notes from {notes_path}")
+
+    # Filter to cohort if available
+    from .agents.pipeline import _load_cohort_ids
+    cohort_ids = _load_cohort_ids(output_dir)
+    if cohort_ids is not None and ext_config.patient_id_column in notes_df.columns:
+        cohort_set = set(str(x) for x in cohort_ids)
+        notes_df = notes_df[notes_df[ext_config.patient_id_column].astype(str).isin(cohort_set)]
+        print(f"Filtered to cohort: {len(notes_df)} notes")
+
+    from .training.grpo_trainer import run_grpo_training
+    run_grpo_training(config, notes_df)
+
+
+if __name__ == "__main__":
+    main()

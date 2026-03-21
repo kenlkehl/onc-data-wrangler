@@ -1,0 +1,98 @@
+{
+  "category": "patient",
+  "description": "Patient-level dataset variables from PRISSMM/GENIE BPC",
+  "items": [
+    {
+      "id": "record_id",
+      "name": "Record ID",
+      "description": "Unique patient identifier",
+      "data_type": "string",
+      "json_field": "record_id"
+    },
+    {
+      "id": "birth_year",
+      "name": "Birth Year",
+      "description": "Patient's year of birth",
+      "data_type": "integer",
+      "json_field": "birth_year"
+    },
+    {
+      "id": "naaccr_sex_code",
+      "name": "Sex at Birth",
+      "description": "Sex assigned at birth",
+      "data_type": "string",
+      "json_field": "naaccr_sex_code",
+      "valid_values": {
+        "1": "Male",
+        "2": "Female"
+      }
+    },
+    {
+      "id": "naaccr_race_code_primary",
+      "name": "Primary Race Code",
+      "description": "Primary race (NAACCR coding)",
+      "data_type": "string",
+      "json_field": "naaccr_race_code_primary"
+    },
+    {
+      "id": "naaccr_ethnicity_code",
+      "name": "Ethnicity Code",
+      "description": "Hispanic/Latino ethnicity",
+      "data_type": "string",
+      "json_field": "naaccr_ethnicity_code"
+    },
+    {
+      "id": "race_ethnicity",
+      "name": "Race/Ethnicity",
+      "description": "Combined race and ethnicity category",
+      "data_type": "string",
+      "json_field": "race_ethnicity",
+      "valid_values": {
+        "Non-Hispanic White": "Non-Hispanic White",
+        "Non-Hispanic Black": "Non-Hispanic Black",
+        "Hispanic": "Hispanic/Latino",
+        "Asian": "Asian",
+        "Other": "Other or mixed race"
+      }
+    },
+    {
+      "id": "os_status",
+      "name": "Overall Survival Status",
+      "description": "Patient vital status at last follow-up",
+      "data_type": "string",
+      "json_field": "os_status",
+      "valid_values": {
+        "1": "Dead",
+        "0": "Alive"
+      }
+    },
+    {
+      "id": "os_months",
+      "name": "Overall Survival (Months)",
+      "description": "Time from diagnosis to death or last follow-up in months",
+      "data_type": "number",
+      "json_field": "os_months"
+    },
+    {
+      "id": "dob_ca_dx_days",
+      "name": "Days from Birth to Cancer Diagnosis",
+      "description": "Days from date of birth to first cancer diagnosis",
+      "data_type": "integer",
+      "json_field": "dob_ca_dx_days"
+    },
+    {
+      "id": "age_at_diagnosis",
+      "name": "Age at Diagnosis",
+      "description": "Age in years at first cancer diagnosis",
+      "data_type": "number",
+      "json_field": "age_at_diagnosis"
+    },
+    {
+      "id": "number_of_cancers",
+      "name": "Number of Cancers",
+      "description": "Total number of cancer diagnoses for this patient",
+      "data_type": "integer",
+      "json_field": "number_of_cancers"
+    }
+  ]
+}

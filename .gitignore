@@ -1,0 +1,23 @@
+.claude/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.eggs/
+*.duckdb
+*.duckdb.wal
+.venv/
+.env
+*.log
+output/
+output_datasets/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+uv.lock
+
+# Frontend
+src/onc_data_wrangler/web/frontend/node_modules/
+src/onc_data_wrangler/web/frontend/dist/

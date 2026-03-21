@@ -1,0 +1,55 @@
+{
+  "category": "cancer_diagnosis",
+  "description": "Cancer diagnosis information. One entry per cancer diagnosis; recurrences or metastases do not count as a new diagnosis. Be very careful not to include non-cancer diagnoses.",
+  "items": [
+    {
+      "name": "Primary Site",
+      "json_field": "primary_site",
+      "description": "Primary anatomical site of the cancer",
+      "data_type": "string",
+      "extraction_hints": ["lung", "breast", "colon", "rectum", "prostate", "pancreas", "ovary", "kidney", "bladder", "brain", "liver", "skin", "thyroid", "stomach", "esophagus", "cervix", "uterus", "head and neck", "bone", "soft tissue", "lymph node", "testis"]
+    },
+    {
+      "name": "Overall Stage at Diagnosis",
+      "json_field": "overall_stage_at_diagnosis",
+      "description": "Overall cancer stage at time of diagnosis (e.g., I, IIA, IIIB, IV)",
+      "data_type": "string",
+      "extraction_hints": ["stage", "staging"]
+    },
+    {
+      "name": "T Stage at Diagnosis",
+      "json_field": "t_stage_at_diagnosis",
+      "description": "Tumor stage component at diagnosis (e.g., T2a, T3b)",
+      "data_type": "string",
+      "extraction_hints": ["T stage", "T1", "T2", "T3", "T4"]
+    },
+    {
+      "name": "N Stage at Diagnosis",
+      "json_field": "n_stage_at_diagnosis",
+      "description": "Nodal stage component at diagnosis (e.g., N0, N1, N2, N3)",
+      "data_type": "string",
+      "extraction_hints": ["N stage", "nodal", "lymph node"]
+    },
+    {
+      "name": "M Stage at Diagnosis",
+      "json_field": "m_stage_at_diagnosis",
+      "description": "Metastasis stage component at diagnosis (e.g., M0, M1a, M1b)",
+      "data_type": "string",
+      "extraction_hints": ["M stage", "metastasis", "metastatic"]
+    },
+    {
+      "name": "Histology",
+      "json_field": "histology",
+      "description": "Histological type of the cancer",
+      "data_type": "string",
+      "extraction_hints": ["adenocarcinoma", "squamous cell carcinoma", "ductal carcinoma", "lobular carcinoma", "transitional cell carcinoma", "renal cell carcinoma", "hepatocellular carcinoma", "melanoma", "glioblastoma", "lymphoma", "sarcoma", "small cell", "large cell", "carcinoid", "mesothelioma", "urothelial", "clear cell", "papillary", "mucinous", "neuroendocrine"]
+    },
+    {
+      "name": "Diagnosis Date",
+      "json_field": "diagnosis_date",
+      "description": "Date of cancer diagnosis. As specific as is known; if only year is indicated, list year; if month is indicated also, list month and year. Format YYYY-MM-DD when possible.",
+      "data_type": "date",
+      "extraction_hints": ["diagnosed", "diagnosis date", "date of diagnosis"]
+    }
+  ]
+}

@@ -1,0 +1,79 @@
+{
+  "table_name": "condition_occurrence",
+  "description": "Records of conditions/diagnoses, including cancer diagnoses",
+  "items": [
+    {
+      "id": "condition_concept_id",
+      "name": "Condition Concept ID",
+      "description": "SNOMED/ICD-O-3 concept ID for the condition",
+      "data_type": "integer",
+      "json_field": "condition_concept_id"
+    },
+    {
+      "id": "condition_concept_name",
+      "name": "Condition Name",
+      "description": "Human-readable condition name",
+      "data_type": "string",
+      "json_field": "condition_concept_name"
+    },
+    {
+      "id": "condition_start_date",
+      "name": "Condition Start Date",
+      "description": "Date condition was diagnosed or observed",
+      "data_type": "date",
+      "json_field": "condition_start_date"
+    },
+    {
+      "id": "condition_end_date",
+      "name": "Condition End Date",
+      "description": "Date condition resolved (if applicable)",
+      "data_type": "date",
+      "json_field": "condition_end_date"
+    },
+    {
+      "id": "condition_type_concept_id",
+      "name": "Condition Type Concept ID",
+      "description": "Type of condition record (EHR, claim, registry)",
+      "data_type": "integer",
+      "json_field": "condition_type_concept_id"
+    },
+    {
+      "id": "condition_source_value",
+      "name": "Condition Source Value",
+      "description": "Source system code (ICD-10, ICD-O-3)",
+      "data_type": "string",
+      "json_field": "condition_source_value"
+    },
+    {
+      "id": "condition_source_concept_id",
+      "name": "Condition Source Concept ID",
+      "description": "Concept ID for source vocabulary",
+      "data_type": "integer",
+      "json_field": "condition_source_concept_id"
+    },
+    {
+      "id": "condition_status_concept_id",
+      "name": "Condition Status Concept ID",
+      "description": "Status of condition (preliminary, confirmed, etc.)",
+      "data_type": "integer",
+      "json_field": "condition_status_concept_id"
+    }
+  ],
+  "oncology_concepts": {
+    "topography": {
+      "vocabulary": "ICD-O-3 Topography",
+      "description": "Primary site codes (C00-C80)",
+      "examples": ["C34.1 (Upper lobe, lung)", "C50.4 (Upper-outer quadrant, breast)"]
+    },
+    "morphology": {
+      "vocabulary": "ICD-O-3 Morphology",
+      "description": "Histology + behavior codes (M####/#)",
+      "examples": ["8140/3 (Adenocarcinoma, NOS)", "8070/3 (Squamous cell carcinoma)"]
+    },
+    "snomed_conditions": {
+      "vocabulary": "SNOMED CT",
+      "description": "Clinical findings and disorders",
+      "examples": ["254637007 (Non-small cell lung cancer)", "254838004 (Breast carcinoma)"]
+    }
+  }
+}

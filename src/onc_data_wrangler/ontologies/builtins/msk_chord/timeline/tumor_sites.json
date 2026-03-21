@@ -1,0 +1,48 @@
+{
+  "category_id": "tumor_sites",
+  "category_name": "Tumor Sites (Radiology)",
+  "description": "NLP-derived tumor site indications from radiology report impressions",
+  "nlp_derived": true,
+  "items": [
+    {
+      "id": "tumor_site_date",
+      "name": "Date of Tumor Indication",
+      "description": "Date tumor site was indicated in radiology",
+      "data_type": "date",
+      "column_name": "START_DATE"
+    },
+    {
+      "id": "anatomic_location",
+      "name": "Anatomic Site",
+      "description": "Standard tumor site (9 categories defined by MSK-CHORD)",
+      "data_type": "string",
+      "column_name": "ANATOMIC_LOCATION",
+      "valid_values": {
+        "Adrenal Glands": "Adrenal glands",
+        "Bone": "Bone",
+        "CNS_Brain": "Central nervous system / Brain",
+        "Intra_Abdominal": "Intra-abdominal",
+        "Liver": "Liver",
+        "Lung": "Lung",
+        "Lymph Nodes": "Lymph nodes",
+        "Pleura": "Pleura",
+        "Reproductive_Organs": "Reproductive organs",
+        "Other": "Other sites"
+      }
+    },
+    {
+      "id": "tumor_site_description",
+      "name": "Description",
+      "description": "Tumor site description",
+      "data_type": "string",
+      "column_name": "DX_DESCRIPTION"
+    },
+    {
+      "id": "tumor_site_source",
+      "name": "Source",
+      "description": "Type of radiology report (CT, MRI, PET)",
+      "data_type": "string",
+      "column_name": "SOURCE_SPECIFIC"
+    }
+  ]
+}

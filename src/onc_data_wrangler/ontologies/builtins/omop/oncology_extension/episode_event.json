@@ -1,0 +1,81 @@
+{
+  "table_name": "episode_event",
+  "description": "Links clinical events to episodes - connects low-level records to episode abstraction",
+  "items": [
+    {
+      "id": "episode_id",
+      "name": "Episode ID",
+      "description": "Reference to the episode table",
+      "data_type": "integer",
+      "json_field": "episode_id"
+    },
+    {
+      "id": "event_id",
+      "name": "Event ID",
+      "description": "Reference to the clinical event (condition, drug, procedure, etc.)",
+      "data_type": "integer",
+      "json_field": "event_id"
+    },
+    {
+      "id": "event_field_concept_id",
+      "name": "Event Field Concept ID",
+      "description": "Indicates which table the event_id refers to",
+      "data_type": "integer",
+      "json_field": "event_field_concept_id"
+    }
+  ],
+  "event_field_concepts": {
+    "description": "Concept IDs indicating source table of linked events",
+    "values": [
+      {
+        "concept_id": 1147127,
+        "concept_name": "condition_occurrence.condition_occurrence_id",
+        "description": "Links to condition_occurrence table"
+      },
+      {
+        "concept_id": 1147094,
+        "concept_name": "drug_exposure.drug_exposure_id",
+        "description": "Links to drug_exposure table"
+      },
+      {
+        "concept_id": 1147082,
+        "concept_name": "procedure_occurrence.procedure_occurrence_id",
+        "description": "Links to procedure_occurrence table"
+      },
+      {
+        "concept_id": 1147138,
+        "concept_name": "measurement.measurement_id",
+        "description": "Links to measurement table"
+      },
+      {
+        "concept_id": 1147165,
+        "concept_name": "observation.observation_id",
+        "description": "Links to observation table"
+      }
+    ]
+  },
+  "usage_patterns": {
+    "disease_episode_linkage": {
+      "description": "Connect disease episodes to diagnostic events",
+      "example": {
+        "episode_type": "Disease First Occurrence",
+        "linked_events": [
+          "condition_occurrence (cancer diagnosis)",
+          "procedure_occurrence (diagnostic biopsy)",
+          "measurement (staging workup)"
+        ]
+      }
+    },
+    "treatment_episode_linkage": {
+      "description": "Connect treatment episodes to therapy events",
+      "example": {
+        "episode_type": "Treatment Regimen",
+        "linked_events": [
+          "drug_exposure (chemotherapy agents)",
+          "procedure_occurrence (radiation therapy)",
+          "measurement (response assessment)"
+        ]
+      }
+    }
+  }
+}

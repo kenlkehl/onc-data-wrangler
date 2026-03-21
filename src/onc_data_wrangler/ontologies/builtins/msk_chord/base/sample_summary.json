@@ -1,0 +1,181 @@
+{
+  "category_id": "sample_summary",
+  "category_name": "Sample Summary",
+  "description": "Sample-level clinical and genomic attributes from MSK-CHORD/cBioPortal",
+  "items": [
+    {
+      "id": "sample_id",
+      "name": "Sample Identifier",
+      "description": "Unique sample identifier",
+      "data_type": "string",
+      "column_name": "SAMPLE_ID"
+    },
+    {
+      "id": "patient_id",
+      "name": "Patient Identifier",
+      "description": "Patient identifier linking sample to patient",
+      "data_type": "string",
+      "column_name": "PATIENT_ID"
+    },
+    {
+      "id": "cancer_type",
+      "name": "Cancer Type",
+      "description": "Main cancer type per Oncotree classification",
+      "data_type": "string",
+      "column_name": "CANCER_TYPE"
+    },
+    {
+      "id": "cancer_type_detailed",
+      "name": "Cancer Type Detailed",
+      "description": "Cancer subtype per Oncotree classification",
+      "data_type": "string",
+      "column_name": "CANCER_TYPE_DETAILED"
+    },
+    {
+      "id": "oncotree_code",
+      "name": "Oncotree Code",
+      "description": "Assigned Oncotree code for the sample",
+      "data_type": "string",
+      "column_name": "ONCOTREE_CODE"
+    },
+    {
+      "id": "sample_type",
+      "name": "Sample Type",
+      "description": "Type of sample: Normal, Primary, Metastasis, Recurrence",
+      "data_type": "string",
+      "column_name": "SAMPLE_TYPE",
+      "valid_values": {
+        "Primary": "Primary tumor",
+        "Metastasis": "Metastatic site",
+        "Recurrence": "Recurrent tumor",
+        "Normal": "Normal tissue"
+      }
+    },
+    {
+      "id": "sample_class",
+      "name": "Sample Class",
+      "description": "Sample classification: tumor, cell line, xenograft",
+      "data_type": "string",
+      "column_name": "SAMPLE_CLASS"
+    },
+    {
+      "id": "primary_site",
+      "name": "Primary Tumor Site",
+      "description": "Organ sub-division of primary tumor location",
+      "data_type": "string",
+      "column_name": "PRIMARY_SITE"
+    },
+    {
+      "id": "metastatic_site",
+      "name": "Metastatic Site",
+      "description": "Location of profiled metastatic site",
+      "data_type": "string",
+      "column_name": "METASTATIC_SITE"
+    },
+    {
+      "id": "gene_panel",
+      "name": "Gene Panel",
+      "description": "Gene panel or assay used for targeted NGS",
+      "data_type": "string",
+      "column_name": "GENE_PANEL"
+    },
+    {
+      "id": "tumor_purity",
+      "name": "Tumor Purity",
+      "description": "Proportion of cancer cells in tumor sample",
+      "data_type": "number",
+      "column_name": "TUMOR_PURITY"
+    },
+    {
+      "id": "sample_coverage",
+      "name": "Sample Coverage",
+      "description": "Sequencing coverage",
+      "data_type": "number",
+      "column_name": "SAMPLE_COVERAGE"
+    },
+    {
+      "id": "msi_type",
+      "name": "MSI Type",
+      "description": "Microsatellite Instability type: Stable, Instable, Indeterminate",
+      "data_type": "string",
+      "column_name": "MSI_TYPE",
+      "valid_values": {
+        "Stable": "Microsatellite Stable (MSS)",
+        "Instable": "Microsatellite Instable (MSI-H)",
+        "Indeterminate": "Indeterminate MSI status"
+      }
+    },
+    {
+      "id": "msi_score",
+      "name": "MSI Score",
+      "description": "Microsatellite Instability score",
+      "data_type": "number",
+      "column_name": "MSI_SCORE"
+    },
+    {
+      "id": "msi_comment",
+      "name": "MSI Comment",
+      "description": "MSI interpretation from pathology",
+      "data_type": "string",
+      "column_name": "MSI_COMMENT"
+    },
+    {
+      "id": "tmb_score",
+      "name": "TMB Score",
+      "description": "Tumor Mutational Burden score",
+      "data_type": "number",
+      "column_name": "CVR_TMB_SCORE"
+    },
+    {
+      "id": "tmb_cohort_percentile",
+      "name": "TMB Percentile (All Tumor Types)",
+      "description": "TMB percentile across all tumor types",
+      "data_type": "number",
+      "column_name": "CVR_TMB_COHORT_PERCENTILE"
+    },
+    {
+      "id": "tmb_tumor_type_percentile",
+      "name": "TMB Percentile (Within Tumor Type)",
+      "description": "TMB percentile within same tumor type",
+      "data_type": "number",
+      "column_name": "CVR_TMB_TT_COHORT_PERCENTILE"
+    },
+    {
+      "id": "somatic_status",
+      "name": "Somatic Status",
+      "description": "Indicates if matched normal was used for analysis",
+      "data_type": "string",
+      "column_name": "SOMATIC_STATUS"
+    },
+    {
+      "id": "archer",
+      "name": "Archer Panel",
+      "description": "Whether supplemental MSK-ARCHER test was performed",
+      "data_type": "boolean",
+      "column_name": "ARCHER"
+    },
+    {
+      "id": "so_comments",
+      "name": "Sign-Out Comments",
+      "description": "Sign-out comments from pathologist or fellow",
+      "data_type": "string",
+      "column_name": "SO_COMMENTS"
+    },
+    {
+      "id": "gleason_sample_level",
+      "name": "Gleason Score (Sample Level, NLP)",
+      "description": "Gleason score at time of sample collection",
+      "data_type": "string",
+      "column_name": "GLEASON_SAMPLE_LEVEL",
+      "nlp_derived": true
+    },
+    {
+      "id": "pdl1_positive",
+      "name": "Sample PD-L1 Positive (NLP)",
+      "description": "Indication if specimen was PD-L1 positive",
+      "data_type": "boolean",
+      "column_name": "PDL1_POSITIVE",
+      "nlp_derived": true
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "category_id": "prior_medications",
+  "category_name": "Prior Outside Medications",
+  "description": "NLP-derived probability of prior treatment before MSK",
+  "nlp_derived": true,
+  "items": [
+    {
+      "id": "prior_med_date",
+      "name": "Assessment Date",
+      "description": "Date of prior medication assessment",
+      "data_type": "date",
+      "column_name": "START_DATE"
+    },
+    {
+      "id": "prior_med_probability",
+      "name": "Prior Treatment Probability",
+      "description": "Probability patient received medication outside MSK (0-1)",
+      "data_type": "number",
+      "column_name": "PRIOR_MED_PROBABILITY"
+    },
+    {
+      "id": "prior_med_status",
+      "name": "Prior Treatment Status",
+      "description": "Binary indication of prior treatment",
+      "data_type": "string",
+      "column_name": "PRIOR_MED_STATUS",
+      "valid_values": {
+        "Yes": "Prior treatment likely",
+        "No": "No prior treatment"
+      }
+    },
+    {
+      "id": "prior_med_source",
+      "name": "Source",
+      "description": "Source of inference (initial consult notes)",
+      "data_type": "string",
+      "column_name": "SOURCE"
+    }
+  ]
+}

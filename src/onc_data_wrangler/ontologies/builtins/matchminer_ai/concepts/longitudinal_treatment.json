@@ -1,0 +1,258 @@
+{
+  "category": "longitudinal_treatment",
+  "description": "Detailed longitudinal treatment tracking including all lines of therapy",
+  "items": [
+    {
+      "id": "treatment_history",
+      "name": "Complete Treatment History",
+      "description": "All cancer-directed treatments across all lines of therapy",
+      "data_type": "array",
+      "json_field": "treatment_history",
+      "sub_items": [
+        {
+          "id": "line_of_therapy",
+          "name": "Line of Therapy",
+          "description": "Numeric line of therapy (1=first-line, 2=second-line, etc.)",
+          "data_type": "integer"
+        },
+        {
+          "id": "regimen_name",
+          "name": "Regimen Name",
+          "description": "Name of the treatment regimen",
+          "data_type": "string"
+        },
+        {
+          "id": "drugs",
+          "name": "Drug Components",
+          "description": "Individual drugs in the regimen",
+          "data_type": "array"
+        },
+        {
+          "id": "drug_classes",
+          "name": "Drug Classes",
+          "description": "Classes of drugs used",
+          "data_type": "array",
+          "valid_values": {
+            "cytotoxic_chemotherapy": "Traditional chemotherapy",
+            "targeted_therapy": "Targeted/molecular therapy",
+            "immunotherapy": "Immune checkpoint inhibitors, CAR-T, etc.",
+            "hormone_therapy": "Hormonal/endocrine therapy",
+            "antibody_drug_conjugate": "ADCs",
+            "bispecific_antibody": "Bispecific T-cell engagers",
+            "radiation": "Radiation therapy",
+            "other": "Other targeted agents"
+          }
+        },
+        {
+          "id": "intent",
+          "name": "Treatment Intent",
+          "description": "Curative, adjuvant, neoadjuvant, or palliative",
+          "data_type": "string",
+          "valid_values": {
+            "Neoadjuvant": "Before definitive surgery/radiation",
+            "Adjuvant": "After surgery to prevent recurrence",
+            "Curative": "Primary treatment with curative intent",
+            "Palliative": "For metastatic/incurable disease",
+            "Maintenance": "Ongoing therapy after initial response"
+          }
+        },
+        {
+          "id": "start_date",
+          "name": "Start Date",
+          "data_type": "date"
+        },
+        {
+          "id": "end_date",
+          "name": "End Date",
+          "data_type": "date"
+        },
+        {
+          "id": "ongoing",
+          "name": "Currently Ongoing",
+          "data_type": "boolean"
+        },
+        {
+          "id": "cycles_completed",
+          "name": "Cycles Completed",
+          "data_type": "integer"
+        },
+        {
+          "id": "best_response",
+          "name": "Best Response",
+          "description": "Best response achieved on this regimen",
+          "data_type": "string",
+          "valid_values": {
+            "CR": "Complete Response",
+            "PR": "Partial Response",
+            "SD": "Stable Disease",
+            "PD": "Progressive Disease",
+            "NE": "Not Evaluable",
+            "Unknown": "Response not documented"
+          }
+        },
+        {
+          "id": "reason_for_discontinuation",
+          "name": "Reason for Discontinuation",
+          "data_type": "string",
+          "valid_values": {
+            "Progression": "Disease progression",
+            "Toxicity": "Intolerable side effects",
+            "Completion": "Completed planned course",
+            "Patient preference": "Patient decision",
+            "Physician decision": "Clinical decision (not progression/toxicity)",
+            "Death": "Patient death",
+            "Other": "Other reason",
+            "Unknown": "Unknown"
+          }
+        },
+        {
+          "id": "adverse_events",
+          "name": "Notable Adverse Events",
+          "description": "Significant treatment-related adverse events",
+          "data_type": "array",
+          "sub_items": [
+            {
+              "id": "event",
+              "name": "Event",
+              "data_type": "string"
+            },
+            {
+              "id": "grade",
+              "name": "CTCAE Grade",
+              "data_type": "integer"
+            },
+            {
+              "id": "led_to_discontinuation",
+              "name": "Led to Discontinuation",
+              "data_type": "boolean"
+            }
+          ]
+        }
+      ],
+      "extraction_hints": [
+        "chemotherapy", "immunotherapy", "targeted therapy", "regimen",
+        "started", "completed", "discontinued", "progression", "toxicity",
+        "cycle", "line of therapy", "first-line", "second-line"
+      ]
+    },
+    {
+      "id": "current_treatment",
+      "name": "Current Treatment",
+      "description": "Details of currently ongoing treatment if any",
+      "data_type": "object",
+      "json_field": "current_treatment",
+      "sub_items": [
+        {
+          "id": "regimen",
+          "name": "Current Regimen",
+          "data_type": "string"
+        },
+        {
+          "id": "start_date",
+          "name": "Start Date",
+          "data_type": "date"
+        },
+        {
+          "id": "cycles_completed",
+          "name": "Cycles Completed",
+          "data_type": "integer"
+        },
+        {
+          "id": "current_response",
+          "name": "Current Response",
+          "data_type": "string"
+        },
+        {
+          "id": "tolerability",
+          "name": "Tolerability",
+          "data_type": "string"
+        }
+      ],
+      "extraction_hints": ["currently on", "ongoing", "continues on", "receiving", "active treatment"]
+    },
+    {
+      "id": "radiation_history",
+      "name": "Radiation History",
+      "description": "History of radiation therapy",
+      "data_type": "array",
+      "json_field": "radiation_history",
+      "sub_items": [
+        {
+          "id": "site",
+          "name": "Treatment Site",
+          "data_type": "string"
+        },
+        {
+          "id": "modality",
+          "name": "Modality",
+          "data_type": "string",
+          "valid_values": {
+            "EBRT": "External beam radiation",
+            "SBRT": "Stereotactic body radiation",
+            "SRS": "Stereotactic radiosurgery",
+            "WBRT": "Whole brain radiation",
+            "Brachytherapy": "Internal radiation",
+            "Proton": "Proton beam therapy"
+          }
+        },
+        {
+          "id": "total_dose",
+          "name": "Total Dose (Gy)",
+          "data_type": "number"
+        },
+        {
+          "id": "fractions",
+          "name": "Number of Fractions",
+          "data_type": "integer"
+        },
+        {
+          "id": "completion_date",
+          "name": "Completion Date",
+          "data_type": "date"
+        }
+      ],
+      "extraction_hints": ["radiation", "XRT", "RT", "SBRT", "SRS", "WBRT", "Gy", "fractions"]
+    },
+    {
+      "id": "surgical_history",
+      "name": "Surgical History",
+      "description": "Cancer-related surgical history",
+      "data_type": "array",
+      "json_field": "surgical_history",
+      "sub_items": [
+        {
+          "id": "procedure",
+          "name": "Procedure",
+          "data_type": "string"
+        },
+        {
+          "id": "date",
+          "name": "Date",
+          "data_type": "date"
+        },
+        {
+          "id": "intent",
+          "name": "Intent",
+          "data_type": "string",
+          "valid_values": {
+            "Curative": "Curative resection",
+            "Palliative": "Symptom relief",
+            "Diagnostic": "Biopsy/staging",
+            "Debulking": "Cytoreductive surgery"
+          }
+        },
+        {
+          "id": "margins",
+          "name": "Margins",
+          "data_type": "string",
+          "valid_values": {
+            "R0": "Negative margins",
+            "R1": "Microscopic positive",
+            "R2": "Gross residual"
+          }
+        }
+      ],
+      "extraction_hints": ["surgery", "resection", "mastectomy", "lobectomy", "colectomy", "prostatectomy", "biopsy", "R0", "R1", "margins"]
+    }
+  ]
+}

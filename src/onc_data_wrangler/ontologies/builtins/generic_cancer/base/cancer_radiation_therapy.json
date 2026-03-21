@@ -1,0 +1,34 @@
+{
+  "category": "cancer_radiation_therapy",
+  "description": "Radiation therapy courses administered to the patient.",
+  "items": [
+    {
+      "name": "Radiation Type",
+      "json_field": "radiation_type",
+      "description": "Type of radiation therapy (e.g., external_beam, SBRT, SRS, brachytherapy, proton)",
+      "data_type": "string",
+      "extraction_hints": ["radiation", "XRT", "SBRT", "SRS", "external beam", "stereotactic", "proton", "IMRT", "VMAT", "brachytherapy", "whole brain", "craniospinal", "TBI"]
+    },
+    {
+      "name": "Radiation Start Date",
+      "json_field": "radiation_start_date",
+      "description": "Start date of radiation therapy, as specific as is known. Format YYYY-MM-DD when possible.",
+      "data_type": "date",
+      "extraction_hints": ["radiation started", "XRT started", "began radiation"]
+    },
+    {
+      "name": "Radiation End Date",
+      "json_field": "radiation_end_date",
+      "description": "End date of radiation therapy, as specific as is known. Format YYYY-MM-DD when possible.",
+      "data_type": "date",
+      "extraction_hints": ["radiation completed", "XRT completed", "finished radiation"]
+    },
+    {
+      "name": "Radiation Site",
+      "json_field": "radiation_site",
+      "description": "Anatomical site treated with radiation",
+      "data_type": "string",
+      "extraction_hints": ["treatment site", "radiation to", "irradiated", "brain", "bone", "liver", "lung", "pelvis", "abdomen", "chest", "head and neck", "spine", "whole brain", "extremity", "breast", "prostate", "rectum"]
+    }
+  ]
+}

@@ -1,0 +1,157 @@
+{
+  "schema_id": "nsclc",
+  "schema_name": "Non-Small Cell Lung Cancer",
+  "cohort": "NSCLC",
+  "description": "NSCLC-specific variables from GENIE BPC",
+  "items": [
+    {
+      "id": "ca_lung_cigarette",
+      "name": "Cigarette Smoking History",
+      "description": "History of cigarette smoking",
+      "data_type": "string",
+      "json_field": "ca_lung_cigarette",
+      "valid_values": {
+        "Current user": "Currently smoking",
+        "Former user (quit <=1 year)": "Quit within last year",
+        "Former user (quit >1 year)": "Quit more than 1 year ago",
+        "Never smoker": "Never smoked cigarettes",
+        "Unknown": "Unknown smoking status"
+      }
+    },
+    {
+      "id": "ca_lung_pack_years",
+      "name": "Pack Years",
+      "description": "Cumulative pack-years of smoking",
+      "data_type": "number",
+      "json_field": "ca_lung_pack_years"
+    },
+    {
+      "id": "ca_lung_sep_tumor",
+      "name": "Separate Tumor Nodules",
+      "description": "Presence of separate tumor nodule(s) in same or different lobe",
+      "data_type": "string",
+      "json_field": "ca_lung_sep_tumor"
+    },
+    {
+      "id": "ca_lung_pl_el_inv",
+      "name": "Pleural/Elastic Layer Invasion",
+      "description": "Visceral pleural invasion classification",
+      "data_type": "string",
+      "json_field": "ca_lung_pl_el_inv",
+      "valid_values": {
+        "PL 0": "No pleural invasion",
+        "PL 1": "Invasion beyond elastic layer",
+        "PL 2": "Invasion to visceral pleural surface",
+        "PL 3": "Invasion to parietal pleura or chest wall"
+      }
+    },
+    {
+      "id": "egfr_status",
+      "name": "EGFR Mutation Status",
+      "description": "EGFR mutation status",
+      "data_type": "string",
+      "json_field": "egfr_status",
+      "valid_values": {
+        "Mutated": "EGFR mutation detected",
+        "Wild-type": "No EGFR mutation",
+        "Not tested": "EGFR not tested",
+        "Unknown": "Unknown"
+      }
+    },
+    {
+      "id": "egfr_variant",
+      "name": "EGFR Variant",
+      "description": "Specific EGFR mutation if detected",
+      "data_type": "string",
+      "json_field": "egfr_variant",
+      "extraction_hints": ["exon 19 deletion", "L858R", "exon 20 insertion", "T790M", "C797S"]
+    },
+    {
+      "id": "alk_status",
+      "name": "ALK Rearrangement Status",
+      "description": "ALK fusion/rearrangement status",
+      "data_type": "string",
+      "json_field": "alk_status",
+      "valid_values": {
+        "Rearranged": "ALK rearrangement detected",
+        "Not rearranged": "No ALK rearrangement",
+        "Not tested": "ALK not tested"
+      }
+    },
+    {
+      "id": "ros1_status",
+      "name": "ROS1 Rearrangement Status",
+      "description": "ROS1 fusion/rearrangement status",
+      "data_type": "string",
+      "json_field": "ros1_status",
+      "valid_values": {
+        "Rearranged": "ROS1 rearrangement detected",
+        "Not rearranged": "No ROS1 rearrangement",
+        "Not tested": "ROS1 not tested"
+      }
+    },
+    {
+      "id": "kras_status",
+      "name": "KRAS Mutation Status",
+      "description": "KRAS mutation status",
+      "data_type": "string",
+      "json_field": "kras_status"
+    },
+    {
+      "id": "kras_variant",
+      "name": "KRAS Variant",
+      "description": "Specific KRAS mutation if detected",
+      "data_type": "string",
+      "json_field": "kras_variant",
+      "extraction_hints": ["G12C", "G12D", "G12V", "G13D"]
+    },
+    {
+      "id": "braf_status",
+      "name": "BRAF Mutation Status",
+      "description": "BRAF mutation status",
+      "data_type": "string",
+      "json_field": "braf_status"
+    },
+    {
+      "id": "met_status",
+      "name": "MET Alteration Status",
+      "description": "MET exon 14 skipping or amplification",
+      "data_type": "string",
+      "json_field": "met_status"
+    },
+    {
+      "id": "ret_status",
+      "name": "RET Fusion Status",
+      "description": "RET rearrangement/fusion status",
+      "data_type": "string",
+      "json_field": "ret_status"
+    },
+    {
+      "id": "ntrk_status",
+      "name": "NTRK Fusion Status",
+      "description": "NTRK1/2/3 fusion status",
+      "data_type": "string",
+      "json_field": "ntrk_status"
+    },
+    {
+      "id": "pdl1_tps",
+      "name": "PD-L1 TPS (%)",
+      "description": "PD-L1 tumor proportion score",
+      "data_type": "number",
+      "json_field": "pdl1_tps"
+    },
+    {
+      "id": "pdl1_category",
+      "name": "PD-L1 Category",
+      "description": "PD-L1 expression category",
+      "data_type": "string",
+      "json_field": "pdl1_category",
+      "valid_values": {
+        "High (>=50%)": "TPS 50% or higher",
+        "Low (1-49%)": "TPS 1-49%",
+        "Negative (<1%)": "TPS less than 1%",
+        "Not tested": "PD-L1 not tested"
+      }
+    }
+  ]
+}

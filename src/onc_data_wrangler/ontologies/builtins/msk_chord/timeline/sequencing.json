@@ -1,0 +1,42 @@
+{
+  "category_id": "sequencing",
+  "category_name": "Sample Sequencing",
+  "description": "Timeline of specimen sequencing and acquisition",
+  "items": [
+    {
+      "id": "sequencing_date",
+      "name": "Sequencing Date",
+      "description": "Date specimen was sequenced",
+      "data_type": "date",
+      "column_name": "START_DATE"
+    },
+    {
+      "id": "sample_id",
+      "name": "Sample ID",
+      "description": "Sample identifier",
+      "data_type": "string",
+      "column_name": "SAMPLE_ID"
+    },
+    {
+      "id": "acquisition_date",
+      "name": "Acquisition Date",
+      "description": "Date specimen was acquired (surgery/biopsy)",
+      "data_type": "date",
+      "column_name": "ACQUISITION_DATE"
+    },
+    {
+      "id": "sample_type",
+      "name": "Sample Type",
+      "description": "Type of specimen",
+      "data_type": "string",
+      "column_name": "SAMPLE_TYPE"
+    },
+    {
+      "id": "sequencing_source",
+      "name": "Source",
+      "description": "Source of sequencing (MSK molecular pathology)",
+      "data_type": "string",
+      "column_name": "SOURCE"
+    }
+  ]
+}

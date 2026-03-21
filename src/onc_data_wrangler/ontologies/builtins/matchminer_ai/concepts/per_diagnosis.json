@@ -1,0 +1,126 @@
+{
+  "category": "per_diagnosis",
+  "description": "Per-diagnosis clinical characteristics for clinical trial matching",
+  "per_diagnosis": true,
+  "items": [
+    {
+      "id": "cancer_type",
+      "name": "Cancer Type",
+      "description": "Specific cancer type/subtype for this diagnosis",
+      "data_type": "string",
+      "json_field": "cancer_type",
+      "extraction_hints": ["diagnosis", "cancer", "carcinoma", "adenocarcinoma", "sarcoma", "lymphoma", "leukemia"]
+    },
+    {
+      "id": "histology",
+      "name": "Histology",
+      "description": "Histologic subtype of the cancer",
+      "data_type": "string",
+      "json_field": "histology",
+      "extraction_hints": ["histology", "adenocarcinoma", "squamous", "small cell", "large cell", "undifferentiated"]
+    },
+    {
+      "id": "extent_of_disease",
+      "name": "Extent of Disease",
+      "description": "Disease extent and treatment intent",
+      "data_type": "object",
+      "json_field": "extent_of_disease",
+      "sub_items": [
+        {
+          "id": "intent",
+          "name": "Treatment Intent",
+          "description": "Curative vs palliative intent based on disease extent",
+          "data_type": "string",
+          "valid_values": {
+            "Curative": "Treatment given with curative intent (localized/resectable disease)",
+            "Palliative": "Treatment given with palliative intent (metastatic/unresectable disease)"
+          }
+        },
+        {
+          "id": "stage_category",
+          "name": "Stage Category",
+          "description": "Broad staging category",
+          "data_type": "string",
+          "valid_values": {
+            "Early-stage": "Early stage, localized disease (typically Stage I-II)",
+            "Locally Advanced": "Locally advanced disease (typically Stage III)",
+            "Metastatic": "Distant metastatic disease (Stage IV)"
+          }
+        },
+        {
+          "id": "sites_of_disease",
+          "name": "Sites of Disease",
+          "description": "Current sites of known disease involvement",
+          "data_type": "array",
+          "json_field": "sites_of_disease"
+        }
+      ],
+      "extraction_hints": ["metastatic", "localized", "stage", "curative", "palliative", "advanced", "early-stage"]
+    },
+    {
+      "id": "risk_category",
+      "name": "Risk Category",
+      "description": "Risk stratification if applicable to cancer type (e.g., IPSS for MDS, IMDC for RCC)",
+      "data_type": "string",
+      "json_field": "risk_category",
+      "extraction_hints": ["risk", "favorable", "intermediate", "poor", "high-risk", "low-risk", "IPSS", "IMDC", "Oncotype", "Mammaprint"]
+    },
+    {
+      "id": "biomarkers",
+      "name": "Biomarkers",
+      "description": "Actionable biomarkers and genomic alterations",
+      "data_type": "object",
+      "json_field": "biomarkers",
+      "extraction_hints": [
+        "EGFR", "ALK", "ROS1", "BRAF", "KRAS", "NRAS", "HER2", "PIK3CA",
+        "BRCA1", "BRCA2", "MSI", "TMB", "PD-L1", "ER", "PR", "AR",
+        "mutation", "amplification", "fusion", "rearrangement", "expression"
+      ]
+    },
+    {
+      "id": "prior_treatments",
+      "name": "Prior Treatments",
+      "description": "Systemic therapy history for this cancer diagnosis",
+      "data_type": "array",
+      "json_field": "prior_treatments",
+      "sub_items": [
+        {
+          "id": "regimen",
+          "name": "Regimen Name",
+          "data_type": "string"
+        },
+        {
+          "id": "line_of_therapy",
+          "name": "Line of Therapy",
+          "data_type": "integer"
+        },
+        {
+          "id": "intent",
+          "name": "Treatment Intent",
+          "data_type": "string"
+        },
+        {
+          "id": "start_date",
+          "name": "Start Date",
+          "data_type": "date"
+        },
+        {
+          "id": "end_date",
+          "name": "End Date",
+          "data_type": "date"
+        },
+        {
+          "id": "best_response",
+          "name": "Best Response",
+          "data_type": "string"
+        },
+        {
+          "id": "ongoing",
+          "name": "Ongoing",
+          "data_type": "boolean"
+        }
+      ],
+      "extraction_hints": ["chemotherapy", "immunotherapy", "targeted therapy", "treatment", "regimen", "cycles", "line of therapy"]
+    }
+  ]
+}

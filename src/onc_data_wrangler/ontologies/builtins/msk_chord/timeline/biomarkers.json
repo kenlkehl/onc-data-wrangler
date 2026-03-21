@@ -1,0 +1,92 @@
+{
+  "category_id": "biomarkers",
+  "category_name": "Biomarkers",
+  "description": "Biomarker data from pathology reports (PD-L1, MMR, Gleason)",
+  "items": [
+    {
+      "id": "pdl1_date",
+      "name": "PD-L1 Date",
+      "description": "Date of PD-L1 assessment",
+      "data_type": "date",
+      "column_name": "START_DATE"
+    },
+    {
+      "id": "pdl1_status",
+      "name": "PD-L1 Status",
+      "description": "PD-L1 positivity status",
+      "data_type": "string",
+      "column_name": "PDL1_STATUS",
+      "valid_values": {
+        "Positive": "PD-L1 positive",
+        "Negative": "PD-L1 negative"
+      },
+      "nlp_derived": true
+    },
+    {
+      "id": "pdl1_score",
+      "name": "PD-L1 Score",
+      "description": "PD-L1 TPS or CPS score if available",
+      "data_type": "string",
+      "column_name": "PDL1_SCORE",
+      "nlp_derived": true
+    },
+    {
+      "id": "mmr_date",
+      "name": "MMR Date",
+      "description": "Date of MMR assessment",
+      "data_type": "date",
+      "column_name": "START_DATE"
+    },
+    {
+      "id": "mmr_status",
+      "name": "MMR Status",
+      "description": "Mismatch repair deficiency status",
+      "data_type": "string",
+      "column_name": "MMR_STATUS",
+      "valid_values": {
+        "dMMR": "MMR deficient",
+        "pMMR": "MMR proficient"
+      },
+      "nlp_derived": true
+    },
+    {
+      "id": "mmr_proteins",
+      "name": "MMR Proteins",
+      "description": "MLH1, PMS2, MSH2, MSH6 status",
+      "data_type": "string",
+      "column_name": "MMR_PROTEINS",
+      "nlp_derived": true
+    },
+    {
+      "id": "gleason_date",
+      "name": "Gleason Date",
+      "description": "Date of Gleason score assessment",
+      "data_type": "date",
+      "column_name": "START_DATE"
+    },
+    {
+      "id": "gleason_score",
+      "name": "Gleason Score",
+      "description": "Gleason score (prostate cancer)",
+      "data_type": "string",
+      "column_name": "GLEASON_SCORE",
+      "nlp_derived": true
+    },
+    {
+      "id": "gleason_pattern_primary",
+      "name": "Gleason Primary Pattern",
+      "description": "Primary Gleason pattern (1-5)",
+      "data_type": "integer",
+      "column_name": "GLEASON_PRIMARY",
+      "nlp_derived": true
+    },
+    {
+      "id": "gleason_pattern_secondary",
+      "name": "Gleason Secondary Pattern",
+      "description": "Secondary Gleason pattern (1-5)",
+      "data_type": "integer",
+      "column_name": "GLEASON_SECONDARY",
+      "nlp_derived": true
+    }
+  ]
+}

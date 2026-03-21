@@ -1,0 +1,145 @@
+{
+  "schema_id": "colorectal",
+  "schema_name": "Colorectal Cancer",
+  "cohort": "CRC",
+  "description": "Colorectal cancer-specific variables from GENIE BPC",
+  "items": [
+    {
+      "id": "tumor_location",
+      "name": "Tumor Location",
+      "description": "Location of primary tumor in colon/rectum",
+      "data_type": "string",
+      "json_field": "tumor_location",
+      "valid_values": {
+        "Right colon": "Cecum, ascending, hepatic flexure, transverse",
+        "Left colon": "Splenic flexure, descending, sigmoid",
+        "Rectum": "Rectal primary",
+        "Rectosigmoid": "Rectosigmoid junction"
+      }
+    },
+    {
+      "id": "tumor_sidedness",
+      "name": "Tumor Sidedness",
+      "description": "Right vs left-sided colorectal cancer",
+      "data_type": "string",
+      "json_field": "tumor_sidedness",
+      "valid_values": {
+        "Right-sided": "Right colon (cecum to proximal transverse)",
+        "Left-sided": "Left colon (distal transverse to rectum)"
+      }
+    },
+    {
+      "id": "kras_status",
+      "name": "KRAS Mutation Status",
+      "description": "KRAS mutation status",
+      "data_type": "string",
+      "json_field": "kras_status",
+      "valid_values": {
+        "Mutated": "KRAS mutation detected",
+        "Wild-type": "No KRAS mutation",
+        "Not tested": "KRAS not tested"
+      }
+    },
+    {
+      "id": "kras_variant",
+      "name": "KRAS Variant",
+      "description": "Specific KRAS mutation if detected",
+      "data_type": "string",
+      "json_field": "kras_variant",
+      "extraction_hints": ["G12D", "G12V", "G12C", "G13D", "A146T", "exon 2", "exon 3", "exon 4"]
+    },
+    {
+      "id": "nras_status",
+      "name": "NRAS Mutation Status",
+      "description": "NRAS mutation status",
+      "data_type": "string",
+      "json_field": "nras_status",
+      "valid_values": {
+        "Mutated": "NRAS mutation detected",
+        "Wild-type": "No NRAS mutation",
+        "Not tested": "NRAS not tested"
+      }
+    },
+    {
+      "id": "braf_status",
+      "name": "BRAF Mutation Status",
+      "description": "BRAF mutation status",
+      "data_type": "string",
+      "json_field": "braf_status",
+      "valid_values": {
+        "V600E": "BRAF V600E mutation",
+        "Other mutation": "Non-V600E BRAF mutation",
+        "Wild-type": "No BRAF mutation",
+        "Not tested": "BRAF not tested"
+      }
+    },
+    {
+      "id": "msi_status",
+      "name": "Microsatellite Instability Status",
+      "description": "MSI/MMR status",
+      "data_type": "string",
+      "json_field": "msi_status",
+      "valid_values": {
+        "MSI-H": "Microsatellite instability-high",
+        "MSS": "Microsatellite stable",
+        "MSI-L": "Microsatellite instability-low",
+        "Not tested": "MSI not tested"
+      }
+    },
+    {
+      "id": "mmr_status",
+      "name": "Mismatch Repair Status",
+      "description": "MMR protein expression by IHC",
+      "data_type": "string",
+      "json_field": "mmr_status",
+      "valid_values": {
+        "dMMR": "Deficient mismatch repair (loss of MLH1, MSH2, MSH6, or PMS2)",
+        "pMMR": "Proficient mismatch repair (intact)",
+        "Not tested": "MMR not tested"
+      }
+    },
+    {
+      "id": "her2_status",
+      "name": "HER2 Status",
+      "description": "HER2 amplification/overexpression status",
+      "data_type": "string",
+      "json_field": "her2_status",
+      "valid_values": {
+        "Positive": "HER2 amplified/overexpressed",
+        "Negative": "HER2 negative",
+        "Not tested": "HER2 not tested"
+      }
+    },
+    {
+      "id": "ntrk_fusion",
+      "name": "NTRK Fusion Status",
+      "description": "NTRK1/2/3 gene fusion status",
+      "data_type": "string",
+      "json_field": "ntrk_fusion",
+      "valid_values": {
+        "Fusion detected": "NTRK fusion present",
+        "No fusion": "No NTRK fusion",
+        "Not tested": "NTRK not tested"
+      }
+    },
+    {
+      "id": "cea_baseline",
+      "name": "Baseline CEA",
+      "description": "Carcinoembryonic antigen level at diagnosis",
+      "data_type": "number",
+      "json_field": "cea_baseline"
+    },
+    {
+      "id": "ras_wild_type",
+      "name": "RAS Wild-Type",
+      "description": "Whether tumor is RAS (KRAS + NRAS) wild-type",
+      "data_type": "string",
+      "json_field": "ras_wild_type",
+      "valid_values": {
+        "Yes": "Both KRAS and NRAS wild-type",
+        "No": "KRAS and/or NRAS mutated",
+        "Unknown": "Not fully tested"
+      }
+    }
+  ]
+}

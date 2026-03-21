@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Talk-to-Data</title>
+<style>
+  /* ---------- Reset & base ---------- */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #f5f5f5;
+    --surface:  #ffffff;
+    --border:   #e0e0e0;
+    --primary:  #2563eb;
+    --primary-hover: #1d4ed8;
+    --text:     #1e1e1e;
+    --text-dim: #6b7280;
+    --user-bg:  #dbeafe;
+    --bot-bg:   #f0f0f0;
+    --tool-bg:  #fef9c3;
+    --error-bg: #fee2e2;
+    --code-bg:  #1e1e2e;
+    --code-fg:  #cdd6f4;
+    --radius:   8px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  header h1 { font-size: 18px; font-weight: 600; }
+  #resetBtn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 6px 14px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-dim);
+    transition: background 0.15s, color 0.15s;
+  }
+  #resetBtn:hover { background: var(--error-bg); color: #b91c1c; }
+
+  /* ---------- Chat area ---------- */
+  #chatArea {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .msg {
+    max-width: 80%;
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    line-height: 1.55;
+    font-size: 14px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+  .msg.user {
+    align-self: flex-end;
+    background: var(--user-bg);
+    border-bottom-right-radius: 2px;
+  }
+  .msg.assistant {
+    align-self: flex-start;
+    background: var(--bot-bg);
+    border-bottom-left-radius: 2px;
+  }
+  .msg.tool-info {
+    align-self: flex-start;
+    background: var(--tool-bg);
+    font-size: 12px;
+    font-family: monospace;
+    max-width: 90%;
+    white-space: pre-wrap;
+  }
+  .msg.error {
+    align-self: center;
+    background: var(--error-bg);
+    color: #991b1b;
+    font-size: 13px;
+  }
+  .msg.ask-user {
+    align-self: flex-start;
+    background: #ede9fe;
+    border-left: 3px solid #7c3aed;
+  }
+
+  /* Markdown rendering */
+  .msg h1, .msg h2, .msg h3, .msg h4 { margin: 10px 0 6px; }
+  .msg h1 { font-size: 1.3em; }
+  .msg h2 { font-size: 1.15em; }
+  .msg h3 { font-size: 1.05em; }
+  .msg p  { margin: 6px 0; }
+  .msg ul, .msg ol { margin: 6px 0 6px 20px; }
+  .msg li { margin: 2px 0; }
+  .msg pre {
+    background: var(--code-bg);
+    color: var(--code-fg);
+    padding: 10px 12px;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-size: 13px;
+    margin: 8px 0;
+  }
+  .msg code {
+    background: rgba(0,0,0,0.06);
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 0.92em;
+  }
+  .msg pre code {
+    background: none;
+    padding: 0;
+  }
+  .msg table {
+    border-collapse: collapse;
+    margin: 8px 0;
+    font-size: 13px;
+    width: 100%;
+  }
+  .msg th, .msg td {
+    border: 1px solid var(--border);
+    padding: 4px 8px;
+    text-align: left;
+  }
+  .msg th { background: rgba(0,0,0,0.04); font-weight: 600; }
+  .msg blockquote {
+    border-left: 3px solid var(--border);
+    padding-left: 12px;
+    margin: 8px 0;
+    color: var(--text-dim);
+  }
+
+  /* ---------- Summary dashboard ---------- */
+  .summary-dashboard {
+    align-self: flex-start;
+    max-width: 90%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.5;
+  }
+  .summary-dashboard h2 {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 4px 0;
+    color: #333;
+  }
+  .summary-dashboard .total-patients {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 16px;
+  }
+  .summary-dashboard .total-patients span {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text-dim);
+  }
+  .summary-dashboard .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 14px 0 6px 0;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 3px;
+  }
+  .summary-dashboard .section-title:first-of-type {
+    margin-top: 0;
+  }
+  .demo-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .summary-dashboard table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 13px;
+  }
+  .summary-dashboard th, .summary-dashboard td {
+    padding: 3px 8px;
+    text-align: left;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .summary-dashboard th {
+    font-weight: 600;
+    color: #555;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .summary-dashboard td.num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .summary-dashboard .loading-placeholder {
+    color: var(--text-dim);
+    font-style: italic;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+  }
+  .summary-dashboard .loading-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #ccc;
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  .summary-dashboard .dash-error {
+    color: var(--text-dim);
+    font-style: italic;
+    padding: 4px 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ---------- Toggle switch ---------- */
+  .toggle-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .toggle-group label {
+    font-size: 13px;
+    color: var(--text-dim);
+    cursor: pointer;
+    user-select: none;
+  }
+  .toggle-switch {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+  .toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  .toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: #ccc;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    left: 2px;
+    bottom: 2px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.2s;
+  }
+  .toggle-switch input:checked + .toggle-slider {
+    background: var(--primary);
+  }
+  .toggle-switch input:checked + .toggle-slider::before {
+    transform: translateX(16px);
+  }
+
+  /* ---------- Input bar ---------- */
+  #inputBar {
+    display: flex;
+    gap: 8px;
+    padding: 12px 20px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  #msgInput {
+    flex: 1;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    font-size: 14px;
+    outline: none;
+    resize: none;
+    font-family: inherit;
+    min-height: 42px;
+    max-height: 150px;
+  }
+  #msgInput:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(37,99,235,0.15); }
+  #sendBtn {
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    padding: 10px 20px;
+    font-size: 14px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s;
+  }
+  #sendBtn:hover { background: var(--primary-hover); }
+  #sendBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ---------- Spinner ---------- */
+  .spinner {
+    align-self: flex-start;
+    display: flex;
+    gap: 4px;
+    padding: 12px 16px;
+  }
+  .spinner .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    animation: bounce 1.4s infinite ease-in-out both;
+  }
+  .spinner .dot:nth-child(1) { animation-delay: -0.32s; }
+  .spinner .dot:nth-child(2) { animation-delay: -0.16s; }
+  @keyframes bounce {
+    0%, 80%, 100% { transform: scale(0); }
+    40% { transform: scale(1); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1 id="chatTitle">Talk-to-Data</h1>
+  <div style="display:flex;align-items:center;gap:16px;">
+    <div class="toggle-group">
+      <label for="toolToggle">Show code</label>
+      <span class="toggle-switch">
+        <input type="checkbox" id="toolToggle">
+        <label class="toggle-slider" for="toolToggle"></label>
+      </span>
+    </div>
+    <button id="resetBtn">New Conversation</button>
+  </div>
+</header>
+
+<div id="chatArea">
+  <div class="msg assistant" id="welcomeMsg">
+    <p>Welcome! I can help you query and analyze this dataset. Ask me about patient demographics, cohort characteristics, treatment patterns, and more.</p>
+  </div>
+  <div id="summary-dashboard" class="summary-dashboard">
+    <div class="loading-placeholder"><div class="loading-spinner"></div>Loading dataset summary...</div>
+  </div>
+</div>
+
+<div id="inputBar">
+  <textarea id="msgInput" rows="1" placeholder="Ask a question about the dataset..."></textarea>
+  <button id="sendBtn">Send</button>
+</div>
+
+<script>
+// ---------------------------------------------------------------------------
+// Minimal markdown renderer (no external dependencies)
+// ---------------------------------------------------------------------------
+const md = (() => {
+  function escapeHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function renderInline(text) {
+    // Bold
+    text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    text = text.replace(/__(.+?)__/g, '<strong>$1</strong>');
+    // Italic
+    text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    text = text.replace(/_(.+?)_/g, '<em>$1</em>');
+    // Inline code
+    text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+    // Links
+    text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+    return text;
+  }
+
+  function render(src) {
+    if (!src) return '';
+    const lines = src.split('\n');
+    let html = '';
+    let inCode = false;
+    let codeLang = '';
+    let codeLines = [];
+    let inTable = false;
+    let tableRows = [];
+    let inList = false;
+    let listType = '';
+    let listItems = [];
+
+    function flushList() {
+      if (!inList) return;
+      const tag = listType === 'ol' ? 'ol' : 'ul';
+      html += `<${tag}>` + listItems.map(li => `<li>${renderInline(li)}</li>`).join('') + `</${tag}>`;
+      inList = false;
+      listItems = [];
+    }
+
+    function flushTable() {
+      if (!inTable) return;
+      if (tableRows.length === 0) { inTable = false; return; }
+      let t = '<table>';
+      tableRows.forEach((row, i) => {
+        const cells = row.split('|').map(c => c.trim()).filter(c => c !== '');
+        // Skip separator rows like |---|---|
+        if (cells.every(c => /^[-:]+$/.test(c))) return;
+        const tag = i === 0 ? 'th' : 'td';
+        t += '<tr>' + cells.map(c => `<${tag}>${renderInline(c)}</${tag}>`).join('') + '</tr>';
+      });
+      t += '</table>';
+      html += t;
+      inTable = false;
+      tableRows = [];
+    }
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      // Fenced code blocks
+      if (line.startsWith('```')) {
+        if (!inCode) {
+          flushList();
+          flushTable();
+          inCode = true;
+          codeLang = line.slice(3).trim();
+          codeLines = [];
+        } else {
+          html += `<pre><code>${escapeHtml(codeLines.join('\n'))}</code></pre>`;
+          inCode = false;
+        }
+        continue;
+      }
+      if (inCode) { codeLines.push(line); continue; }
+
+      // Table rows
+      if (line.includes('|') && line.trim().startsWith('|')) {
+        flushList();
+        if (!inTable) inTable = true;
+        tableRows.push(line);
+        continue;
+      } else {
+        flushTable();
+      }
+
+      // Headings
+      const hMatch = line.match(/^(#{1,6})\s+(.*)/);
+      if (hMatch) {
+        flushList();
+        const level = hMatch[1].length;
+        html += `<h${level}>${renderInline(hMatch[2])}</h${level}>`;
+        continue;
+      }
+
+      // Unordered list
+      const ulMatch = line.match(/^(\s*)[*\-+]\s+(.*)/);
+      if (ulMatch) {
+        if (!inList || listType !== 'ul') { flushList(); inList = true; listType = 'ul'; listItems = []; }
+        listItems.push(ulMatch[2]);
+        continue;
+      }
+
+      // Ordered list
+      const olMatch = line.match(/^(\s*)\d+\.\s+(.*)/);
+      if (olMatch) {
+        if (!inList || listType !== 'ol') { flushList(); inList = true; listType = 'ol'; listItems = []; }
+        listItems.push(olMatch[2]);
+        continue;
+      }
+
+      flushList();
+
+      // Blockquote
+      if (line.startsWith('>')) {
+        html += `<blockquote>${renderInline(line.slice(1).trim())}</blockquote>`;
+        continue;
+      }
+
+      // Horizontal rule
+      if (/^[-*_]{3,}\s*$/.test(line)) {
+        html += '<hr>';
+        continue;
+      }
+
+      // Blank line
+      if (line.trim() === '') {
+        continue;
+      }
+
+      // Paragraph
+      html += `<p>${renderInline(line)}</p>`;
+    }
+
+    // Flush remaining
+    if (inCode) html += `<pre><code>${escapeHtml(codeLines.join('\n'))}</code></pre>`;
+    flushList();
+    flushTable();
+    return html;
+  }
+
+  return { render };
+})();
+
+// ---------------------------------------------------------------------------
+// App state
+// ---------------------------------------------------------------------------
+let sessionId = '';
+let busy = false;
+let showToolCalls = false;
+
+const chatArea   = document.getElementById('chatArea');
+const msgInput   = document.getElementById('msgInput');
+const sendBtn    = document.getElementById('sendBtn');
+const resetBtn   = document.getElementById('resetBtn');
+const toolToggle = document.getElementById('toolToggle');
+
+toolToggle.addEventListener('change', () => {
+  showToolCalls = toolToggle.checked;
+  const display = showToolCalls ? '' : 'none';
+  chatArea.querySelectorAll('.tool-info').forEach(el => el.style.display = display);
+});
+
+console.log('[chat] Initialized');
+
+// ---------------------------------------------------------------------------
+// DOM helpers
+// ---------------------------------------------------------------------------
+function addMsg(cls, html) {
+  const div = document.createElement('div');
+  div.className = 'msg ' + cls;
+  div.innerHTML = html;
+  chatArea.appendChild(div);
+  chatArea.scrollTop = chatArea.scrollHeight;
+  return div;
+}
+
+function addSpinner() {
+  const div = document.createElement('div');
+  div.className = 'spinner';
+  div.id = 'spinner';
+  div.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+  chatArea.appendChild(div);
+  chatArea.scrollTop = chatArea.scrollHeight;
+}
+
+function removeSpinner() {
+  const el = document.getElementById('spinner');
+  if (el) el.remove();
+}
+
+function setBusy(b) {
+  busy = b;
+  sendBtn.disabled = b;
+  msgInput.disabled = b;
+  if (!b) msgInput.focus();
+}
+
+// ---------------------------------------------------------------------------
+// SSE stream reader
+// ---------------------------------------------------------------------------
+async function streamChat(url, body) {
+  console.log('[chat] Starting SSE stream to', url);
+  addSpinner();
+  setBusy(true);
+
+  let assistantDiv = null;
+  let assistantText = '';
+
+  try {
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    console.log('[chat] Response status:', resp.status);
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      // Parse SSE frames
+      const parts = buffer.split('\n\n');
+      buffer = parts.pop();  // keep incomplete frame
+
+      for (const part of parts) {
+        let eventType = 'message';
+        let eventData = '';
+        for (const line of part.split('\n')) {
+          if (line.startsWith('event:')) eventType = line.slice(6).trim();
+          else if (line.startsWith('data:')) eventData += line.slice(5).trim();
+        }
+        if (!eventData) continue;
+
+        let payload;
+        try { payload = JSON.parse(eventData); } catch { continue; }
+
+        console.log('[chat] SSE event:', eventType, eventData.slice(0, 100));
+
+        switch (eventType) {
+          case 'session':
+            sessionId = payload.session_id;
+            console.log('[chat] Session ID:', sessionId);
+            break;
+
+          case 'text':
+            removeSpinner();
+            assistantText += payload.text;
+            console.log('[chat] Text chunk received, total length:', assistantText.length);
+            if (!assistantDiv) {
+              assistantDiv = addMsg('assistant', md.render(assistantText));
+            } else {
+              assistantDiv.innerHTML = md.render(assistantText);
+            }
+            chatArea.scrollTop = chatArea.scrollHeight;
+            break;
+
+          case 'tool_call':
+            removeSpinner();
+            // Reset so next text event creates a fresh bubble after tool output
+            assistantDiv = null;
+            assistantText = '';
+            console.log('[chat] Tool call:', payload.tool);
+            const tcDiv = addMsg('tool-info', 'Tool call: ' + payload.tool + '\n' + JSON.stringify(payload.input, null, 2));
+            if (!showToolCalls) tcDiv.style.display = 'none';
+            addSpinner();
+            break;
+
+          case 'tool_result':
+            removeSpinner();
+            console.log('[chat] Tool result:', payload.tool, payload.result.slice(0, 80));
+            const trDiv = addMsg('tool-info', 'Result (' + payload.tool + '):\n' + payload.result);
+            if (!showToolCalls) trDiv.style.display = 'none';
+            addSpinner();
+            break;
+
+          case 'ask_user':
+            removeSpinner();
+            console.log('[chat] Ask user:', payload.question.slice(0, 80));
+            handleAskUser(payload);
+            return;  // stop processing; user will respond
+
+          case 'error':
+            removeSpinner();
+            console.error('[chat] Error:', payload.error);
+            addMsg('error', 'Error: ' + (payload.error || 'Unknown error'));
+            break;
+
+          case 'done':
+            removeSpinner();
+            console.log('[chat] Stream done');
+            break;
+        }
+      }
+    }
+  } catch (err) {
+    removeSpinner();
+    console.error('[chat] Connection error:', err);
+    addMsg('error', 'Connection error: ' + err.message);
+  }
+
+  setBusy(false);
+}
+
+// ---------------------------------------------------------------------------
+// ask_user handling
+// ---------------------------------------------------------------------------
+function handleAskUser(payload) {
+  const question = payload.question;
+  console.log('[chat] Handling ask_user, question:', question.slice(0, 80));
+  addMsg('ask-user', md.render(question));
+  setBusy(false);
+
+  // Override the send handler temporarily to post to /answer
+  const origHandler = sendBtn.onclick;
+  const onAnswer = () => {
+    const answer = msgInput.value.trim();
+    if (!answer) return;
+    console.log('[chat] Sending answer:', answer.slice(0, 80));
+    addMsg('user', md.render(answer));
+    msgInput.value = '';
+    msgInput.style.height = 'auto';
+    sendBtn.onclick = origHandler;
+    onKeydownHandler = defaultKeydownHandler;
+    streamChat('/answer', { session_id: sessionId, answer });
+  };
+  sendBtn.onclick = onAnswer;
+  onKeydownHandler = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      onAnswer();
+    }
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Send message
+// ---------------------------------------------------------------------------
+function sendMessage() {
+  const text = msgInput.value.trim();
+  if (!text || busy) return;
+  console.log('[chat] Sending message:', text.slice(0, 80));
+  addMsg('user', md.render(text));
+  msgInput.value = '';
+  msgInput.style.height = 'auto';
+  streamChat('/chat', { session_id: sessionId, message: text });
+}
+
+// Default keydown handler for Enter key
+function defaultKeydownHandler(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+let onKeydownHandler = defaultKeydownHandler;
+
+sendBtn.onclick = sendMessage;
+msgInput.addEventListener('keydown', (e) => onKeydownHandler(e));
+
+// Auto-resize textarea
+msgInput.addEventListener('input', () => {
+  msgInput.style.height = 'auto';
+  msgInput.style.height = Math.min(msgInput.scrollHeight, 150) + 'px';
+});
+
+// ---------------------------------------------------------------------------
+// Reset
+// ---------------------------------------------------------------------------
+resetBtn.addEventListener('click', async () => {
+  console.log('[chat] Resetting session');
+  if (sessionId) {
+    try {
+      await fetch('/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId }),
+      });
+    } catch { /* ignore */ }
+  }
+  sessionId = '';
+  chatArea.innerHTML = '';
+  msgInput.value = '';
+  setBusy(false);
+  // Re-add welcome message and summary dashboard
+  const welcome = document.createElement('div');
+  welcome.className = 'msg assistant';
+  welcome.id = 'welcomeMsg';
+  welcome.innerHTML = '<p>Welcome! I can help you query and analyze this dataset. Ask me about patient demographics, cohort characteristics, treatment patterns, and more.</p>';
+  chatArea.appendChild(welcome);
+  const dashDiv = document.createElement('div');
+  dashDiv.id = 'summary-dashboard';
+  dashDiv.className = 'summary-dashboard';
+  dashDiv.innerHTML = '<div class="loading-placeholder"><div class="loading-spinner"></div>Loading dataset summary...</div>';
+  chatArea.appendChild(dashDiv);
+  loadSummaryDashboard();
+});
+
+// ---------------------------------------------------------------------------
+// Summary dashboard (loaded on startup)
+// ---------------------------------------------------------------------------
+let summaryDataCache = null;
+
+function formatN(n) {
+  if (n == null) return '&mdash;';
+  if (typeof n === 'string') return n;
+  return n.toLocaleString();
+}
+
+function renderSummaryDashboard(data) {
+  const el = document.getElementById('summary-dashboard');
+  if (!el) return;
+
+  if (data.error) {
+    el.innerHTML = '<div class="dash-error">Summary statistics unavailable.</div>';
+    return;
+  }
+
+  let html = '';
+
+  // Project name heading
+  html += `<h2>${data.project_name || 'Dataset'} Overview</h2>`;
+
+  // Total patients
+  if (data.total_patients != null) {
+    html += `<div class="total-patients">${formatN(data.total_patients)} <span>patients</span></div>`;
+  }
+
+  // Available tables with column names
+  if (data.tables && data.tables.length > 0) {
+    html += '<div class="section-title">Available Tables</div>';
+    for (const t of data.tables) {
+      const cols = (t.column_names && t.column_names.length > 0)
+        ? t.column_names.join(', ')
+        : `${t.column_count} columns`;
+      html += `<p><strong>${t.name}</strong>: ${cols}</p>`;
+    }
+  }
+
+  el.innerHTML = html;
+}
+
+async function loadSummaryDashboard() {
+  const el = document.getElementById('summary-dashboard');
+  if (!el) return;
+
+  if (summaryDataCache) {
+    renderSummaryDashboard(summaryDataCache);
+    return;
+  }
+
+  // Try structured stats first, fall back to markdown
+  try {
+    const resp = await fetch('/summary-stats');
+    const data = await resp.json();
+    if (!data.error) {
+      summaryDataCache = data;
+      renderSummaryDashboard(data);
+      console.log('[chat] Summary dashboard loaded from structured stats');
+      return;
+    }
+  } catch (err) {
+    console.log('[chat] Could not load summary-stats:', err.message);
+  }
+
+  // Fallback: render markdown summary
+  try {
+    const resp = await fetch('/summary');
+    const data = await resp.json();
+    if (data.available && data.markdown) {
+      el.innerHTML = md.render(data.markdown);
+      console.log('[chat] Summary loaded from markdown fallback');
+    } else {
+      el.style.display = 'none';
+      console.log('[chat] No summary available');
+    }
+  } catch (err) {
+    el.style.display = 'none';
+    console.log('[chat] Could not load summary:', err.message);
+  }
+}
+loadSummaryDashboard();
+
+// ---------------------------------------------------------------------------
+// Chatbot name (loaded from config)
+// ---------------------------------------------------------------------------
+async function loadConfig() {
+  try {
+    const resp = await fetch('/config');
+    const data = await resp.json();
+    if (data.chatbot_name) {
+      document.getElementById('chatTitle').textContent = data.chatbot_name;
+      document.title = data.chatbot_name;
+      console.log('[chat] Chatbot name:', data.chatbot_name);
+    }
+  } catch (err) {
+    console.log('[chat] Could not load config:', err.message);
+  }
+}
+loadConfig();
+
+// ---------------------------------------------------------------------------
+// LLM health check (logged to console)
+// ---------------------------------------------------------------------------
+async function checkLLMHealth() {
+  try {
+    const resp = await fetch('/health/llm');
+    const data = await resp.json();
+    if (data.status === 'ok') {
+      console.log('[chat] LLM health: OK, model=' + data.model + ', provider=' + data.provider);
+    } else {
+      console.warn('[chat] LLM health: FAILED -', data.error);
+    }
+  } catch (err) {
+    console.error('[chat] LLM health check request failed:', err.message);
+  }
+}
+checkLLMHealth();
+
+// Focus input on load
+msgInput.focus();
+</script>
+</body>
+</html>

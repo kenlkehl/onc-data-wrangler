@@ -1,0 +1,21 @@
+{
+  "category": "smoking_history",
+  "description": "Patient smoking history, relevant for thoracic malignancies.",
+  "items": [
+    {
+      "name": "Categorical Smoking History",
+      "json_field": "categorical_smoking_history",
+      "description": "Categorical smoking status (e.g., never, former, current)",
+      "data_type": "string",
+      "valid_codes": "never, former, current",
+      "extraction_hints": ["never smoker", "former smoker", "current smoker", "non-smoker", "smoking history", "tobacco use", "pack year"]
+    },
+    {
+      "name": "Pack Years",
+      "json_field": "pack_years",
+      "description": "Smoking exposure in pack-years, extract whatever was documented",
+      "data_type": "string",
+      "extraction_hints": ["pack year", "pack-year", "PPD", "packs per day"]
+    }
+  ]
+}

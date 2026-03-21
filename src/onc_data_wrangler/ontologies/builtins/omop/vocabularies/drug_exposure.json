@@ -1,0 +1,110 @@
+{
+  "table_name": "drug_exposure",
+  "description": "Records of drug administrations, including cancer treatments",
+  "items": [
+    {
+      "id": "drug_concept_id",
+      "name": "Drug Concept ID",
+      "description": "RxNorm/HemOnc concept ID for the drug",
+      "data_type": "integer",
+      "json_field": "drug_concept_id"
+    },
+    {
+      "id": "drug_concept_name",
+      "name": "Drug Name",
+      "description": "Human-readable drug name",
+      "data_type": "string",
+      "json_field": "drug_concept_name"
+    },
+    {
+      "id": "drug_exposure_start_date",
+      "name": "Drug Exposure Start Date",
+      "description": "Date drug administration began",
+      "data_type": "date",
+      "json_field": "drug_exposure_start_date"
+    },
+    {
+      "id": "drug_exposure_end_date",
+      "name": "Drug Exposure End Date",
+      "description": "Date drug administration ended",
+      "data_type": "date",
+      "json_field": "drug_exposure_end_date"
+    },
+    {
+      "id": "drug_type_concept_id",
+      "name": "Drug Type Concept ID",
+      "description": "Type of drug record (prescription, dispensing, administration)",
+      "data_type": "integer",
+      "json_field": "drug_type_concept_id"
+    },
+    {
+      "id": "route_concept_id",
+      "name": "Route Concept ID",
+      "description": "Route of administration (oral, IV, etc.)",
+      "data_type": "integer",
+      "json_field": "route_concept_id"
+    },
+    {
+      "id": "route_concept_name",
+      "name": "Route Name",
+      "description": "Human-readable route name",
+      "data_type": "string",
+      "json_field": "route_concept_name"
+    },
+    {
+      "id": "dose_unit_source_value",
+      "name": "Dose Unit",
+      "description": "Unit of dosing (mg, mg/m2, etc.)",
+      "data_type": "string",
+      "json_field": "dose_unit_source_value"
+    },
+    {
+      "id": "quantity",
+      "name": "Quantity",
+      "description": "Amount of drug",
+      "data_type": "number",
+      "json_field": "quantity"
+    },
+    {
+      "id": "drug_source_value",
+      "name": "Drug Source Value",
+      "description": "Source system drug code/name",
+      "data_type": "string",
+      "json_field": "drug_source_value"
+    }
+  ],
+  "oncology_vocabularies": {
+    "rxnorm": {
+      "vocabulary": "RxNorm",
+      "description": "Standard drug vocabulary for clinical drugs",
+      "examples": ["osimertinib", "pembrolizumab", "carboplatin"]
+    },
+    "hemonc": {
+      "vocabulary": "HemOnc",
+      "description": "Oncology-specific regimen and drug vocabulary",
+      "examples": [
+        "Carboplatin/Pemetrexed/Pembrolizumab",
+        "FOLFOX",
+        "AC-T (doxorubicin/cyclophosphamide -> paclitaxel)"
+      ],
+      "hierarchy": [
+        "Regimen contains Component",
+        "Component uses Drug"
+      ]
+    },
+    "atc": {
+      "vocabulary": "ATC",
+      "description": "Anatomical Therapeutic Chemical classification",
+      "classes": {
+        "L01": "Antineoplastic agents",
+        "L01A": "Alkylating agents",
+        "L01B": "Antimetabolites",
+        "L01C": "Plant alkaloids",
+        "L01D": "Cytotoxic antibiotics",
+        "L01E": "Protein kinase inhibitors",
+        "L01F": "Monoclonal antibodies",
+        "L01X": "Other antineoplastic agents"
+      }
+    }
+  }
+}

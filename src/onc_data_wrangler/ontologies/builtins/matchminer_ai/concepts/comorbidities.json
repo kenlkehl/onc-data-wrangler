@@ -1,0 +1,134 @@
+{
+  "category": "comorbidities",
+  "description": "Patient comorbidities organized by organ system",
+  "items": [
+    {
+      "id": "comorbidities",
+      "name": "Comorbidities",
+      "description": "Medical conditions other than the cancer being treated",
+      "data_type": "object",
+      "json_field": "comorbidities",
+      "sub_items": [
+        {
+          "id": "cardiac",
+          "name": "Cardiac Conditions",
+          "description": "Heart and cardiovascular conditions",
+          "data_type": "array",
+          "extraction_hints": ["CHF", "heart failure", "MI", "myocardial infarction", "atrial fibrillation", "arrhythmia", "CAD", "hypertension", "HTN", "cardiomyopathy"]
+        },
+        {
+          "id": "pulmonary",
+          "name": "Pulmonary Conditions",
+          "description": "Lung and respiratory conditions",
+          "data_type": "array",
+          "extraction_hints": ["COPD", "asthma", "pulmonary fibrosis", "ILD", "pneumonitis", "emphysema", "oxygen", "home O2"]
+        },
+        {
+          "id": "renal",
+          "name": "Renal Conditions",
+          "description": "Kidney conditions",
+          "data_type": "array",
+          "extraction_hints": ["CKD", "chronic kidney disease", "ESRD", "dialysis", "nephrectomy", "renal insufficiency"]
+        },
+        {
+          "id": "hepatic",
+          "name": "Hepatic Conditions",
+          "description": "Liver conditions",
+          "data_type": "array",
+          "extraction_hints": ["cirrhosis", "liver disease", "hepatitis", "hepatic insufficiency", "Child-Pugh", "ascites"]
+        },
+        {
+          "id": "endocrine",
+          "name": "Endocrine Conditions",
+          "description": "Hormonal and metabolic conditions",
+          "data_type": "array",
+          "extraction_hints": ["diabetes", "DM", "hypothyroidism", "hyperthyroidism", "adrenal insufficiency", "Cushing", "A1c", "insulin"]
+        },
+        {
+          "id": "neurologic",
+          "name": "Neurologic Conditions",
+          "description": "Brain and nervous system conditions",
+          "data_type": "array",
+          "extraction_hints": ["stroke", "TIA", "seizure", "epilepsy", "neuropathy", "Parkinson", "MS", "dementia"]
+        },
+        {
+          "id": "hematologic",
+          "name": "Hematologic Conditions",
+          "description": "Blood and bone marrow conditions (non-malignant)",
+          "data_type": "array",
+          "extraction_hints": ["anemia", "thrombocytopenia", "coagulopathy", "DVT", "PE", "anticoagulation", "bleeding disorder"]
+        },
+        {
+          "id": "gastrointestinal",
+          "name": "Gastrointestinal Conditions",
+          "description": "GI tract conditions",
+          "data_type": "array",
+          "extraction_hints": ["Crohn", "ulcerative colitis", "IBD", "GERD", "GI bleed", "pancreatitis", "gastroparesis"]
+        },
+        {
+          "id": "psychiatric",
+          "name": "Psychiatric Conditions",
+          "description": "Mental health conditions",
+          "data_type": "array",
+          "extraction_hints": ["depression", "anxiety", "bipolar", "schizophrenia", "PTSD", "substance abuse"]
+        },
+        {
+          "id": "rheumatologic",
+          "name": "Rheumatologic/Autoimmune",
+          "description": "Autoimmune and rheumatologic conditions",
+          "data_type": "array",
+          "extraction_hints": ["rheumatoid arthritis", "RA", "lupus", "SLE", "scleroderma", "Sjogren", "psoriatic arthritis", "ankylosing spondylitis"]
+        },
+        {
+          "id": "infectious",
+          "name": "Chronic Infections",
+          "description": "Chronic infectious conditions",
+          "data_type": "array",
+          "extraction_hints": ["HIV", "hepatitis B", "hepatitis C", "tuberculosis", "TB"]
+        },
+        {
+          "id": "other",
+          "name": "Other Conditions",
+          "description": "Other significant comorbidities",
+          "data_type": "array"
+        }
+      ],
+      "extraction_hints": ["history of", "past medical history", "PMH", "comorbidities", "conditions", "chronic"]
+    },
+    {
+      "id": "charlson_comorbidity_index",
+      "name": "Charlson Comorbidity Index",
+      "description": "Calculated Charlson Comorbidity Index if documented",
+      "data_type": "integer",
+      "json_field": "charlson_comorbidity_index",
+      "extraction_hints": ["Charlson", "CCI", "comorbidity index"]
+    },
+    {
+      "id": "medications",
+      "name": "Current Medications",
+      "description": "Current medications that may affect trial eligibility",
+      "data_type": "array",
+      "json_field": "medications",
+      "sub_items": [
+        {
+          "id": "name",
+          "name": "Medication Name",
+          "data_type": "string"
+        },
+        {
+          "id": "category",
+          "name": "Category",
+          "data_type": "string",
+          "valid_values": {
+            "immunosuppressant": "Immunosuppressive medications (steroids, methotrexate, etc.)",
+            "anticoagulant": "Blood thinners",
+            "cyp_inhibitor": "Strong CYP3A4 inhibitors",
+            "cyp_inducer": "Strong CYP3A4 inducers",
+            "other": "Other medications"
+          }
+        }
+      ],
+      "extraction_hints": ["prednisone", "steroids", "warfarin", "anticoagulation", "methotrexate", "cyclosporine", "tacrolimus"]
+    }
+  ]
+}
