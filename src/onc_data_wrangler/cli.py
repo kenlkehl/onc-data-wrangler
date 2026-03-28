@@ -72,10 +72,13 @@ def main():
     p_extract.add_argument("--text-column", default="text", help="Column containing note text (for CSV/parquet, default: text)")
     p_extract.add_argument("--patient-id-column", default="patient_id", help="Column containing patient IDs (for CSV/parquet, default: patient_id)")
     p_extract.add_argument("--date-column", default="date", help="Column containing note dates (for CSV/parquet, default: date)")
+    p_extract.add_argument("--note-type-column", default="note_type", help="Column containing note type labels (for CSV/parquet, default: note_type)")
     p_extract.add_argument("--items-per-call", type=int, default=50, help="Fields per LLM call (default: 50)")
     p_extract.add_argument("--format", choices=["json", "csv", "naaccr-xml", "naaccr-csv"], default="json", help="Output format (default: json)")
     p_extract.add_argument("--max-tokens", type=int, default=16384, help="Max output tokens per LLM call (default: 16384)")
     p_extract.add_argument("--chunk-tokens", type=int, default=40000, help="Tokens per text chunk (default: 40000)")
+    p_extract.add_argument("--overlap-tokens", type=int, default=200, help="Overlap between text chunks (default: 200)")
+    p_extract.add_argument("--patient-workers", type=int, default=8, help="Patients to process concurrently in standalone cohort mode (default: 8)")
 
     # finetune
     p_finetune = subparsers.add_parser("finetune", help="Fine-tune a summary model using GRPO")
@@ -186,6 +189,7 @@ def main():
 def _run_standalone_extract(args):
     """Run extraction directly from a notes file without a project config."""
     import json as _json
+    import tempfile
     from pathlib import Path
 
     import pandas as pd
@@ -195,31 +199,55 @@ def _run_standalone_extract(args):
         print(f"ERROR: Input file not found: {input_path}")
         sys.exit(1)
 
-    # --- Determine input type and load text ---
+    # --- Determine input type and normalize into a notes DataFrame ---
     suffix = input_path.suffix.lower()
 
     if suffix == ".txt":
-        # Single text file
         text = input_path.read_text(encoding="utf-8")
-        patients = {input_path.stem: [text]}
+        notes_df = pd.DataFrame([{
+            args.patient_id_column: input_path.stem,
+            args.text_column: text,
+            args.date_column: "",
+            args.note_type_column: "text",
+        }])
+        patient_order = [input_path.stem]
         print(f"Loaded single text file: {len(text):,} characters")
 
     elif suffix in (".csv", ".tsv"):
         sep = "\t" if suffix == ".tsv" else ","
-        df = pd.read_csv(input_path, sep=sep, low_memory=False)
-        patients = _group_notes(df, args.patient_id_column, args.text_column, args.date_column)
-        print(f"Loaded {len(df)} rows, {len(patients)} patients from {input_path.name}")
+        raw_df = pd.read_csv(input_path, sep=sep, low_memory=False)
+        notes_df, patient_order = _prepare_standalone_notes_df(
+            raw_df,
+            patient_id_col=args.patient_id_column,
+            text_col=args.text_column,
+            date_col=args.date_column,
+        )
+        print(f"Loaded {len(raw_df)} rows, {len(patient_order)} patients from {input_path.name}")
 
     elif suffix == ".parquet":
-        df = pd.read_parquet(input_path)
-        patients = _group_notes(df, args.patient_id_column, args.text_column, args.date_column)
-        print(f"Loaded {len(df)} rows, {len(patients)} patients from {input_path.name}")
+        raw_df = pd.read_parquet(input_path)
+        notes_df, patient_order = _prepare_standalone_notes_df(
+            raw_df,
+            patient_id_col=args.patient_id_column,
+            text_col=args.text_column,
+            date_col=args.date_column,
+        )
+        print(f"Loaded {len(raw_df)} rows, {len(patient_order)} patients from {input_path.name}")
 
     else:
-        # Treat as plain text
         text = input_path.read_text(encoding="utf-8")
-        patients = {input_path.stem: [text]}
+        notes_df = pd.DataFrame([{
+            args.patient_id_column: input_path.stem,
+            args.text_column: text,
+            args.date_column: "",
+            args.note_type_column: "text",
+        }])
+        patient_order = [input_path.stem]
         print(f"Loaded as text: {len(text):,} characters")
+
+    if args.text_column not in notes_df.columns:
+        print(f"ERROR: Text column not found: {args.text_column}")
+        sys.exit(1)
 
     # --- Create LLM client ---
     llm_client = _create_standalone_llm(args)
@@ -237,7 +265,7 @@ def _run_standalone_extract(args):
     print(f"Extracting with ontologies: {', '.join(args.ontology)}")
     print(f"Cancer type: {args.cancer_type}")
 
-    # --- Optionally chunk long texts ---
+    # --- Optionally load a tokenizer for token-based chunking ---
     tokenizer = None
     try:
         from transformers import AutoTokenizer
@@ -246,27 +274,41 @@ def _run_standalone_extract(args):
     except Exception:
         pass
 
-    # --- Run extraction ---
-    all_results = {}
-    for i, (pid, texts) in enumerate(patients.items()):
-        print(f"  [{i+1}/{len(patients)}] Patient {pid}: {len(texts)} notes, {sum(len(t) for t in texts):,} chars")
-
-        if tokenizer and len(texts) == 1 and len(texts[0]) > args.chunk_tokens * 4:
-            from .extraction.chunked import chunk_text_by_tokens
-            chunks = chunk_text_by_tokens(texts[0], tokenizer, args.chunk_tokens)
-        else:
-            chunks = texts
-
-        result = extractor.extract_iterative(
-            chunks,
-            cancer_type=args.cancer_type,
-            max_tokens=args.max_tokens,
-        )
-        all_results[pid] = result
-
     # --- Write output ---
     output_path = Path(args.output) if args.output else input_path.with_name(f"{input_path.stem}_extractions.json")
     fmt = args.format
+
+    # --- Run extraction using the cohort chunking path ---
+    from .extraction.chunked import ChunkedExtractor, CheckpointManager
+
+    print(
+        f"Running cohort-style extraction: {len(notes_df):,} notes, "
+        f"{len(patient_order):,} patients, {args.patient_workers} workers"
+    )
+
+    with tempfile.TemporaryDirectory(prefix="onc_data_wrangler_extract_") as tmpdir:
+        work_dir = Path(tmpdir)
+        chunked = ChunkedExtractor(
+            extractor=extractor,
+            tokenizer=tokenizer,
+            chunk_size=args.chunk_tokens,
+            overlap=args.overlap_tokens,
+            max_retries=3,
+            patient_workers=args.patient_workers,
+            max_tokens=args.max_tokens,
+        )
+        chunked.extract_cohort(
+            notes_df=notes_df,
+            output_dir=work_dir,
+            patient_id_column=args.patient_id_column,
+            text_column=args.text_column,
+            date_column=args.date_column,
+            type_column=args.note_type_column,
+            resume=False,
+        )
+        final_extractions = CheckpointManager(work_dir).load_final_extractions()
+
+    all_results = {pid: final_extractions.get(pid, []) for pid in patient_order}
 
     if fmt == "json":
         with open(output_path, "w") as f:
@@ -395,6 +437,35 @@ def _group_notes(df, patient_id_col: str, text_col: str, date_col: str) -> dict[
             patients[str(pid)] = texts
 
     return patients
+
+
+def _prepare_standalone_notes_df(df, patient_id_col: str, text_col: str, date_col: str):
+    """Normalize standalone tabular input into cohort-style notes rows."""
+    import pandas as pd
+
+    if text_col not in df.columns:
+        return df.copy(), []
+
+    notes_df = df.copy()
+    notes_df = notes_df[notes_df[text_col].notna()].copy()
+    notes_df[text_col] = notes_df[text_col].astype(str)
+    notes_df = notes_df[notes_df[text_col].str.strip().str.len() > 10].copy()
+
+    if patient_id_col not in notes_df.columns:
+        notes_df[patient_id_col] = "patient_0"
+
+    notes_df[patient_id_col] = notes_df[patient_id_col].astype(str)
+
+    sort_cols = [patient_id_col]
+    if date_col in notes_df.columns:
+        sort_cols.append(date_col)
+    notes_df = notes_df.sort_values(by=sort_cols).reset_index(drop=True)
+
+    patient_order = notes_df[patient_id_col].dropna().astype(str).drop_duplicates().tolist()
+    if not patient_order and not notes_df.empty:
+        patient_order = ["patient_0"]
+
+    return notes_df, patient_order
 
 
 def _flatten_for_naaccr(all_results: dict) -> dict[str, dict[str, str]]:

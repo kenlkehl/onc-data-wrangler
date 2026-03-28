@@ -22,6 +22,7 @@ from ..llm.base import LLMClient
 from .extractor import Extractor
 
 logger = logging.getLogger(__name__)
+APPROX_CHARS_PER_TOKEN = 4
 
 
 def chunk_text_by_tokens(text: str, tokenizer, chunk_size: int = 40000, overlap: int = 200, boundary_marker: str = "\n--- ", boundary_window: int = 500) -> list[str]:
@@ -68,6 +69,63 @@ def chunk_text_by_tokens(text: str, tokenizer, chunk_size: int = 40000, overlap:
     return chunks
 
 
+def chunk_text_by_chars(text: str, chunk_size_chars: int = 160000, overlap_chars: int = 800, boundary_marker: str = "\n--- ", boundary_window_chars: int = 2000) -> list[str]:
+    """Split text into approximate character-based chunks with overlap.
+
+    Used as a fallback when a tokenizer is unavailable. The default sizing
+    mirrors the existing ``~4 chars/token`` heuristic already used by the
+    standalone CLI.
+    """
+    if chunk_size_chars <= 0:
+        return [text]
+
+    total = len(text)
+    chunks = []
+    start = 0
+
+    while start < total:
+        end = min(start + chunk_size_chars, total)
+
+        if end < total:
+            search_start = max(start, end - boundary_window_chars)
+            boundary_pos = text.rfind(boundary_marker, search_start, end)
+            if boundary_pos > start:
+                end = boundary_pos
+
+        chunk_text = text[start:end]
+        if not chunk_text:
+            end = min(start + chunk_size_chars, total)
+            chunk_text = text[start:end]
+
+        chunks.append(chunk_text)
+        if end >= total:
+            break
+        start = max(start + 1, end - overlap_chars)
+
+    return chunks
+
+
+def chunk_text(text: str, tokenizer=None, chunk_size: int = 40000, overlap: int = 200, boundary_marker: str = "\n--- ", boundary_window: int = 500) -> list[str]:
+    """Chunk text by tokens when possible, else fall back to approximate chars."""
+    if tokenizer:
+        return chunk_text_by_tokens(
+            text,
+            tokenizer,
+            chunk_size,
+            overlap,
+            boundary_marker,
+            boundary_window,
+        )
+
+    return chunk_text_by_chars(
+        text,
+        chunk_size_chars=chunk_size * APPROX_CHARS_PER_TOKEN,
+        overlap_chars=overlap * APPROX_CHARS_PER_TOKEN,
+        boundary_marker=boundary_marker,
+        boundary_window_chars=boundary_window * APPROX_CHARS_PER_TOKEN,
+    )
+
+
 def concatenate_patient_notes(patient_df: pd.DataFrame, text_column: str = "text", date_column: str = "date", type_column: str = "note_type") -> str:
     """Concatenate all notes for one patient chronologically.
 
@@ -98,13 +156,14 @@ class ChunkedExtractor:
     Processing is organized into chunk-wise rounds for crash-safe resume.
     """
 
-    def __init__(self, extractor: Extractor, tokenizer=None, chunk_size: int = 40000, overlap: int = 200, max_retries: int = 10, patient_workers: int = 8):
+    def __init__(self, extractor: Extractor, tokenizer=None, chunk_size: int = 40000, overlap: int = 200, max_retries: int = 10, patient_workers: int = 8, max_tokens: Optional[int] = 8000):
         self.extractor = extractor
         self.tokenizer = tokenizer
         self.chunk_size = chunk_size
         self.overlap = overlap
         self.max_retries = max_retries
         self.patient_workers = patient_workers
+        self.max_tokens = max_tokens
 
     def extract_patient(self, patient_id: str, patient_text: str) -> dict:
         """Run extraction for a single patient.
@@ -116,12 +175,18 @@ class ChunkedExtractor:
         Returns:
             Dict with patient_id, extractions list, and num_chunks.
         """
-        if self.tokenizer:
-            chunks = chunk_text_by_tokens(patient_text, self.tokenizer, self.chunk_size, self.overlap)
-        else:
-            chunks = [patient_text]
+        chunks = chunk_text(
+            patient_text,
+            tokenizer=self.tokenizer,
+            chunk_size=self.chunk_size,
+            overlap=self.overlap,
+        )
         logger.info("Patient %s: %d chunks", patient_id, len(chunks))
-        extractions = self.extractor.extract_iterative(chunks, max_retries=self.max_retries)
+        extractions = self.extractor.extract_iterative(
+            chunks,
+            max_tokens=self.max_tokens,
+            max_retries=self.max_retries,
+        )
         return {"patient_id": patient_id, "extractions": extractions, "num_chunks": len(chunks)}
 
     def extract_cohort(self, notes_df: pd.DataFrame, output_dir: Path, patient_id_column: str = "record_id", text_column: str = "text", date_column: str = "date", type_column: str = "note_type", resume: bool = False) -> pd.DataFrame:
@@ -154,10 +219,12 @@ class ChunkedExtractor:
         for pid, pdf in patient_groups.items():
             pid_str = str(pid)
             text = concatenate_patient_notes(pdf, text_column, date_column, type_column)
-            if self.tokenizer:
-                chunks = chunk_text_by_tokens(text, self.tokenizer, self.chunk_size, self.overlap)
-            else:
-                chunks = [text]
+            chunks = chunk_text(
+                text,
+                tokenizer=self.tokenizer,
+                chunk_size=self.chunk_size,
+                overlap=self.overlap,
+            )
             patient_chunks[pid_str] = chunks
 
         patient_num_chunks = {pid: len(chunks) for pid, chunks in patient_chunks.items()}
@@ -209,14 +276,15 @@ class ChunkedExtractor:
             with ThreadPoolExecutor(max_workers=self.patient_workers) as executor:
                 future_to_pid = {}
                 for pid in pending_pids:
-                    chunk_text = patient_chunks[pid][round_idx]
+                    chunk_str = patient_chunks[pid][round_idx]
                     running = running_state[pid]
                     future = executor.submit(
                         self.extractor.extract_single_chunk,
-                        chunk_text=chunk_text,
+                        chunk_text=chunk_str,
                         running=running,
                         chunk_index=round_idx,
                         total_chunks=patient_num_chunks[pid],
+                        max_tokens=self.max_tokens,
                         max_retries=self.max_retries,
                     )
                     future_to_pid[future] = pid
@@ -377,13 +445,7 @@ class CheckpointManager:
         If all extractions are clinical summaries (free-text), saves as
         summaries.parquet with columns [patient_id, summary] instead.
         """
-        # Collect final extraction per patient (last round wins)
-        final_extractions: dict[str, list] = {}
-        for round_idx in self.find_round_files():
-            round_data = self.load_round(round_idx)
-            for pid, record in round_data.items():
-                final_extractions[pid] = record["extraction"]
-
+        final_extractions = self.load_final_extractions()
         if not final_extractions:
             return pd.DataFrame()
 
@@ -393,6 +455,15 @@ class CheckpointManager:
         if is_summary:
             return self._build_summary_output(final_extractions)
         return self._build_structured_output(final_extractions)
+
+    def load_final_extractions(self) -> dict[str, list]:
+        """Collect each patient's last extraction state across all rounds."""
+        final_extractions: dict[str, list] = {}
+        for round_idx in self.find_round_files():
+            round_data = self.load_round(round_idx)
+            for pid, record in round_data.items():
+                final_extractions[pid] = record["extraction"]
+        return final_extractions
 
     def _build_summary_output(self, final_extractions: dict[str, list]) -> pd.DataFrame:
         """Build output for free-text summary extractions."""

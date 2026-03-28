@@ -422,7 +422,7 @@ def _run_extraction(config: ProjectConfig, resume: bool = False):
             tokenizer = AutoTokenizer.from_pretrained(ext_config.llm.model)
             logger.info("Loaded tokenizer for %s", ext_config.llm.model)
         except Exception:
-            logger.info("No tokenizer available; using single-chunk extraction")
+            logger.info("No tokenizer available; using approximate char-based chunking")
 
         chunked = ChunkedExtractor(
             extractor=extractor,
@@ -431,6 +431,7 @@ def _run_extraction(config: ProjectConfig, resume: bool = False):
             overlap=ext_config.overlap_tokens,
             max_retries=ext_config.max_retries,
             patient_workers=ext_config.patient_workers,
+            max_tokens=ext_config.llm.max_tokens or ext_config.max_output_tokens,
         )
 
         # Find notes file
