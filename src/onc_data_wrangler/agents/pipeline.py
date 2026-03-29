@@ -714,6 +714,9 @@ def _create_llm_client(llm_config):
     if llm_config.provider in ("anthropic", "vertex"):
         from ..llm.claude_client import create_claude_client_from_config
         return create_claude_client_from_config(llm_config)
+    elif llm_config.provider == "azure":
+        from ..llm.azure_client import create_azure_client_from_config
+        return create_azure_client_from_config(llm_config)
     else:
         from ..llm.vllm_client import VLLMClient
         return VLLMClient(

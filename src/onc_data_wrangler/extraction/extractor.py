@@ -404,21 +404,31 @@ class Extractor:
 
         # Call LLM with retry
         parsed = None
+        full_prompt = system_prompt + "\n\n" + user_prompt
         for attempt in range(max_retries):
             try:
-                full_prompt = system_prompt + "\n\n" + user_prompt
                 response = self.llm_client.generate(full_prompt, max_tokens=max_tokens or 8000)
                 parsed = parse_json_object(response.text)
                 if parsed is not None:
                     break
+                logger.warning(
+                    "Group %s batch JSON parse failed (attempt %d/%d)",
+                    group.group_id, attempt + 1, max_retries,
+                )
+                # Include the failed output in the next attempt so the model
+                # can see what went wrong and correct it.
+                failed_text = response.text[:2000] if len(response.text) > 2000 else response.text
+                full_prompt = (
+                    system_prompt + "\n\n" + user_prompt
+                    + "\n\n--- PREVIOUS ATTEMPT FAILED ---\n"
+                    "Your previous response could not be parsed as valid JSON. "
+                    "Here is what you returned:\n\n"
+                    + failed_text
+                    + "\n\nPlease try again and return ONLY a valid JSON object."
+                )
             except Exception:
                 logger.exception(
                     "Group %s batch LLM call failed (attempt %d/%d)",
-                    group.group_id, attempt + 1, max_retries,
-                )
-            if parsed is None:
-                logger.warning(
-                    "Group %s batch JSON parse failed (attempt %d/%d)",
                     group.group_id, attempt + 1, max_retries,
                 )
 

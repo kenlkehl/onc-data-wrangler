@@ -257,10 +257,10 @@ class ChunkedExtractor:
             pending_pids = [pid for pid in active_pids if pid not in round_progress]
 
             # Load any results already saved for this round into running_state
-            for pid in round_progress:
-                if pid in all_ids:
-                    round_data = ckpt.load_round(round_idx)
-                    if pid in round_data:
+            if round_progress:
+                round_data = ckpt.load_round(round_idx)
+                for pid in round_progress:
+                    if pid in all_ids and pid in round_data:
                         running_state[pid] = round_data[pid]["extraction"]
 
             if not pending_pids:

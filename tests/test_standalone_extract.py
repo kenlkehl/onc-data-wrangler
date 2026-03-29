@@ -2,6 +2,7 @@
 
 from argparse import Namespace
 import json
+from pathlib import Path
 
 import pandas as pd
 
@@ -9,8 +10,8 @@ from onc_data_wrangler import cli
 from onc_data_wrangler.extraction.chunked import chunk_text_by_chars, ChunkedExtractor
 
 
-def _make_args(tmp_path, input_name: str, output_name: str = "out.json"):
-    return Namespace(
+def _make_args(tmp_path, input_name: str, output_name: str = "out.json", **overrides):
+    defaults = dict(
         input=str(tmp_path / input_name),
         output=str(tmp_path / output_name),
         ontology=["naaccr"],
@@ -29,7 +30,11 @@ def _make_args(tmp_path, input_name: str, output_name: str = "out.json"):
         chunk_tokens=40,
         overlap_tokens=5,
         patient_workers=3,
+        resume=False,
+        work_dir=None,
     )
+    defaults.update(overrides)
+    return Namespace(**defaults)
 
 
 def test_prepare_standalone_notes_df_filters_and_orders_rows():
@@ -172,9 +177,75 @@ def test_run_standalone_extract_uses_chunked_cohort_path(tmp_path, monkeypatch):
         "second patient note",
     ]
 
+    # Work directory should be persistent (derived from output path), not a temp dir
+    expected_work_dir = Path(args.output).parent / "out_work"
+    assert captured["checkpoint_output_dir"] == expected_work_dir
+
     with open(args.output) as f:
         output = json.load(f)
 
     assert list(output.keys()) == ["p1", "p2"]
     assert output["p1"][0]["naaccr"]["field_a"] == "value_a"
     assert output["p2"][0]["naaccr"]["field_b"] == "value_b"
+
+
+def _setup_extract_test(tmp_path, monkeypatch, captured, final_extractions, **args_overrides):
+    """Helper to set up a standalone extract test with monkeypatching."""
+    input_path = tmp_path / "notes.csv"
+    pd.DataFrame([
+        {"patient_id": "p1", "date": "2024-01-01", "text": "note for p1", "note_type": "path"},
+    ]).to_csv(input_path, index=False)
+
+    args = _make_args(tmp_path, "notes.csv", **args_overrides)
+
+    monkeypatch.setattr(cli, "_create_standalone_llm", lambda args: object())
+    monkeypatch.setattr("transformers.AutoTokenizer.from_pretrained", lambda model_name: object())
+
+    class FakeChunkedExtractor:
+        def __init__(self, **kwargs):
+            captured["init"] = kwargs
+
+        def extract_cohort(self, notes_df, output_dir, patient_id_column, text_column, date_column, type_column, resume):
+            captured["extract_cohort"] = {
+                "output_dir": output_dir,
+                "resume": resume,
+            }
+            return pd.DataFrame()
+
+    class FakeCheckpointManager:
+        def __init__(self, output_dir):
+            captured["checkpoint_output_dir"] = output_dir
+
+        def load_final_extractions(self):
+            return final_extractions
+
+    monkeypatch.setattr(
+        "onc_data_wrangler.extraction.extractor.create_extractor",
+        lambda llm_client, ontology_ids, cancer_type, items_per_call: "fake-extractor",
+    )
+    monkeypatch.setattr("onc_data_wrangler.extraction.chunked.ChunkedExtractor", FakeChunkedExtractor)
+    monkeypatch.setattr("onc_data_wrangler.extraction.chunked.CheckpointManager", FakeCheckpointManager)
+
+    return args
+
+
+def test_run_standalone_extract_resume_flag(tmp_path, monkeypatch):
+    captured = {}
+    final_extractions = {"p1": [{"naaccr": {"f": "v"}}, {"_extraction_results": {}}]}
+    args = _setup_extract_test(tmp_path, monkeypatch, captured, final_extractions, resume=True)
+
+    cli._run_standalone_extract(args)
+
+    assert captured["extract_cohort"]["resume"] is True
+
+
+def test_run_standalone_extract_custom_work_dir(tmp_path, monkeypatch):
+    captured = {}
+    final_extractions = {"p1": [{"naaccr": {"f": "v"}}, {"_extraction_results": {}}]}
+    custom_dir = str(tmp_path / "my_custom_work")
+    args = _setup_extract_test(tmp_path, monkeypatch, captured, final_extractions, work_dir=custom_dir)
+
+    cli._run_standalone_extract(args)
+
+    assert captured["checkpoint_output_dir"] == Path(custom_dir)
+    assert captured["extract_cohort"]["output_dir"] == Path(custom_dir)

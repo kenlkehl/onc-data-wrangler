@@ -19,6 +19,7 @@ class LLMConfig:
     temperature: float = 0.0
     vertex_project: Optional[str] = None
     vertex_region: str = "us-east5"
+    azure_api_version: str = "2024-12-01-preview"
 
     def resolve_api_key(self) -> str:
         """Resolve API key from config or environment variables."""
@@ -28,6 +29,8 @@ class LLMConfig:
             return os.environ.get("ANTHROPIC_API_KEY", "")
         if self.provider == "vertex":
             return ""
+        if self.provider == "azure":
+            return os.environ.get("AZURE_OPENAI_API_KEY", "")
         if self.provider == "openai":
             return os.environ.get("OPENAI_API_KEY", "none")
         return "none"

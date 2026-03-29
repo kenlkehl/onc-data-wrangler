@@ -67,7 +67,7 @@ def main():
     p_extract.add_argument("--cancer-type", default="generic", help="Cancer type for site-specific items (default: generic)")
     p_extract.add_argument("--vllm-url", default=None, help="vLLM server URL (e.g. http://localhost:8000/v1)")
     p_extract.add_argument("--model", default=None, help="Model name on the vLLM server")
-    p_extract.add_argument("--provider", choices=["openai", "anthropic", "vertex"], default="openai", help="LLM provider (default: openai)")
+    p_extract.add_argument("--provider", choices=["openai", "anthropic", "vertex", "azure"], default="openai", help="LLM provider (default: openai)")
     p_extract.add_argument("--api-key", default=None, help="API key (or set OPENAI_API_KEY / ANTHROPIC_API_KEY env var)")
     p_extract.add_argument("--text-column", default="text", help="Column containing note text (for CSV/parquet, default: text)")
     p_extract.add_argument("--patient-id-column", default="patient_id", help="Column containing patient IDs (for CSV/parquet, default: patient_id)")
@@ -79,6 +79,8 @@ def main():
     p_extract.add_argument("--chunk-tokens", type=int, default=40000, help="Tokens per text chunk (default: 40000)")
     p_extract.add_argument("--overlap-tokens", type=int, default=200, help="Overlap between text chunks (default: 200)")
     p_extract.add_argument("--patient-workers", type=int, default=8, help="Patients to process concurrently in standalone cohort mode (default: 8)")
+    p_extract.add_argument("--resume", action="store_true", help="Resume extraction from checkpoint in work directory")
+    p_extract.add_argument("--work-dir", default=None, help="Directory for intermediate round files (default: <output_stem>_work/)")
 
     # finetune
     p_finetune = subparsers.add_parser("finetune", help="Fine-tune a summary model using GRPO")
@@ -189,7 +191,6 @@ def main():
 def _run_standalone_extract(args):
     """Run extraction directly from a notes file without a project config."""
     import json as _json
-    import tempfile
     from pathlib import Path
 
     import pandas as pd
@@ -281,32 +282,38 @@ def _run_standalone_extract(args):
     # --- Run extraction using the cohort chunking path ---
     from .extraction.chunked import ChunkedExtractor, CheckpointManager
 
+    # Use a persistent work directory so per-patient round files survive crashes
+    if args.work_dir:
+        work_dir = Path(args.work_dir)
+    else:
+        work_dir = output_path.parent / f"{output_path.stem}_work"
+    work_dir.mkdir(parents=True, exist_ok=True)
+
     print(
         f"Running cohort-style extraction: {len(notes_df):,} notes, "
         f"{len(patient_order):,} patients, {args.patient_workers} workers"
     )
+    print(f"Work directory: {work_dir}")
 
-    with tempfile.TemporaryDirectory(prefix="onc_data_wrangler_extract_") as tmpdir:
-        work_dir = Path(tmpdir)
-        chunked = ChunkedExtractor(
-            extractor=extractor,
-            tokenizer=tokenizer,
-            chunk_size=args.chunk_tokens,
-            overlap=args.overlap_tokens,
-            max_retries=3,
-            patient_workers=args.patient_workers,
-            max_tokens=args.max_tokens,
-        )
-        chunked.extract_cohort(
-            notes_df=notes_df,
-            output_dir=work_dir,
-            patient_id_column=args.patient_id_column,
-            text_column=args.text_column,
-            date_column=args.date_column,
-            type_column=args.note_type_column,
-            resume=False,
-        )
-        final_extractions = CheckpointManager(work_dir).load_final_extractions()
+    chunked = ChunkedExtractor(
+        extractor=extractor,
+        tokenizer=tokenizer,
+        chunk_size=args.chunk_tokens,
+        overlap=args.overlap_tokens,
+        max_retries=3,
+        patient_workers=args.patient_workers,
+        max_tokens=args.max_tokens,
+    )
+    chunked.extract_cohort(
+        notes_df=notes_df,
+        output_dir=work_dir,
+        patient_id_column=args.patient_id_column,
+        text_column=args.text_column,
+        date_column=args.date_column,
+        type_column=args.note_type_column,
+        resume=args.resume,
+    )
+    final_extractions = CheckpointManager(work_dir).load_final_extractions()
 
     all_results = {pid: final_extractions.get(pid, []) for pid in patient_order}
 
@@ -409,6 +416,13 @@ def _create_standalone_llm(args):
         api_key = args.api_key or os.environ.get("ANTHROPIC_API_KEY", "")
         model = args.model or "claude-sonnet-4-20250514"
         return ClaudeClient(provider=provider, model=model, api_key=api_key)
+
+    elif provider == "azure":
+        from .llm.azure_client import AzureClient
+        api_key = args.api_key or os.environ.get("AZURE_OPENAI_API_KEY", "")
+        model = args.model or "gpt-4o"
+        azure_endpoint = args.vllm_url or os.environ.get("AZURE_OPENAI_ENDPOINT", "")
+        return AzureClient(azure_endpoint=azure_endpoint, api_key=api_key, model=model)
 
     else:
         print(f"ERROR: Unknown provider: {provider}")

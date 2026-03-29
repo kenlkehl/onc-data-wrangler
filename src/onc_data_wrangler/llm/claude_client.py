@@ -22,7 +22,7 @@ class ClaudeClient(LLMClient):
         vertex_region: GCP region (for Vertex AI).
     """
 
-    def __init__(self, provider: str = "anthropic", model: str = "claude-sonnet-4-20250514", api_key: Optional[str] = None, vertex_project: Optional[str] = None, vertex_region: str = "us-east5"):
+    def __init__(self, provider: str = "anthropic", model: str = "claude-opus-4-6", api_key: Optional[str] = None, vertex_project: Optional[str] = None, vertex_region: str = "us-east5"):
         self.provider = provider
         self.model = model
 
@@ -46,7 +46,11 @@ class ClaudeClient(LLMClient):
         if temperature > 0:
             kwargs["temperature"] = temperature
 
-        response = self.client.messages.create(**kwargs)
+        if self.provider == "vertex":
+            with self.client.messages.stream(**kwargs) as stream:
+                response = stream.get_final_message()
+        else:
+            response = self.client.messages.create(**kwargs)
 
         text = ""
         for block in response.content:
@@ -60,7 +64,7 @@ class ClaudeClient(LLMClient):
 
         return LLMResponse(text=text, usage=usage, raw=response)
 
-    def generate_structured(self, prompt: str, system: str = "", max_tokens: int = 8000, temperature: float = 0.0) -> LLMResponse:
+    def generate_structured(self, prompt: str, system: str = "", max_tokens: int = 60000, temperature: float = 0.0) -> LLMResponse:
         if system:
             json_system = system + "\n\nYou must respond with valid JSON only. No commentary."
         else:
