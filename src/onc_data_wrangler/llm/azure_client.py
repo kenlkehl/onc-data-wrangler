@@ -7,14 +7,20 @@ import threading
 import time
 from typing import Optional
 
-from openai import OpenAI
+from openai import APIStatusError, AuthenticationError, OpenAI, RateLimitError
 
 from .base import LLMClient, LLMResponse
 from .vllm_client import strip_reasoning
 
 logger = logging.getLogger(__name__)
 
-_TOKEN_REFRESH_INTERVAL = 45 * 60  # seconds
+# Rate-limiting defaults
+_DEFAULT_MIN_REQUEST_INTERVAL = 5.0  # seconds between requests (across all threads)
+_DEFAULT_MAX_RETRIES = 5
+_DEFAULT_INITIAL_BACKOFF = 10.0  # seconds
+_RATE_LIMIT_COOLDOWN = 30.0  # seconds to globally back off after a rate-limit error
+
+_TOKEN_REFRESH_INTERVAL = 20 * 60  # seconds
 _TOKEN_REFRESH_CMD = [
     "az", "account", "get-access-token",
     "--resource=https://cognitiveservices.azure.com/",
@@ -57,6 +63,7 @@ class AzureClient(LLMClient):
         api_key: str = "",
         model: str = "gpt-4o",
         api_version: str = "2024-12-01-preview",
+        min_request_interval: float = _DEFAULT_MIN_REQUEST_INTERVAL,
     ):
         api_key = api_key or os.environ.get("AZURE_OPENAI_API_KEY", "")
         azure_endpoint = azure_endpoint or os.environ.get("AZURE_OPENAI_ENDPOINT", "")
@@ -66,7 +73,28 @@ class AzureClient(LLMClient):
             #api_version=api_version,
         )
         self.model = model
+        self._min_request_interval = min_request_interval
+        self._last_request_time = 0.0
+        self._rate_limit_until = 0.0  # monotonic deadline; all threads wait until this clears
+        self._throttle_lock = threading.Lock()
         self._start_token_refresh()
+
+    _TOKEN_ERROR_PHRASES = (
+        "access token",
+        "token is missing",
+        "token expired",
+        "invalid token",
+        "unauthorized",
+    )
+
+    def _is_token_error(self, exc: Exception) -> bool:
+        """Return True if *exc* indicates an expired / missing access token."""
+        if isinstance(exc, AuthenticationError):
+            return True
+        if isinstance(exc, APIStatusError):
+            msg = str(exc).lower()
+            return any(phrase in msg for phrase in self._TOKEN_ERROR_PHRASES)
+        return False
 
     def _refresh_token(self):
         """Fetch a fresh Azure AD token and update the client and environment."""
@@ -91,6 +119,27 @@ class AzureClient(LLMClient):
         logger.info("Azure token refresh thread started (every %d min)",
                      _TOKEN_REFRESH_INTERVAL // 60)
 
+    def _throttle(self):
+        """Enforce minimum interval between requests across all threads.
+
+        After a rate-limit error, ``_rate_limit_until`` pushes *all* threads
+        back so the service has time to recover.
+        """
+        with self._throttle_lock:
+            now = time.monotonic()
+            # If a rate-limit cooldown is active, wait for it first
+            if now < self._rate_limit_until:
+                cooldown_wait = self._rate_limit_until - now
+                logger.info("Rate-limit cooldown active, waiting %.1fs", cooldown_wait)
+                time.sleep(cooldown_wait)
+                now = time.monotonic()
+            elapsed = now - self._last_request_time
+            if elapsed < self._min_request_interval:
+                wait = self._min_request_interval - elapsed
+                logger.debug("Throttling Azure request for %.1fs", wait)
+                time.sleep(wait)
+            self._last_request_time = time.monotonic()
+
     def generate(self, prompt: str, system: str = "", max_tokens: int = 8000, temperature: float = 0.0) -> LLMResponse:
         kwargs = {
             "model": self.model,
@@ -101,7 +150,47 @@ class AzureClient(LLMClient):
         if system:
             kwargs["instructions"] = system
 
-        response = self.client.responses.create(**kwargs)
+        backoff = _DEFAULT_INITIAL_BACKOFF
+        token_retries = 0
+        _MAX_TOKEN_RETRIES = 2
+        for attempt in range(_DEFAULT_MAX_RETRIES):
+            self._throttle()
+            try:
+                response = self.client.responses.create(**kwargs)
+                break
+            except RateLimitError as e:
+                if attempt == _DEFAULT_MAX_RETRIES - 1:
+                    logger.error("Azure rate limit exceeded after %d retries", attempt + 1)
+                    raise
+                retry_after = getattr(e.response, "headers", {}).get("retry-after")
+                wait = float(retry_after) if retry_after else backoff
+                # Set a global cooldown so other threads also back off
+                self._rate_limit_until = time.monotonic() + wait
+                logger.warning(
+                    "Azure rate limit hit (attempt %d/%d), waiting %.1fs before retry "
+                    "(global cooldown set for all threads)",
+                    attempt + 1, _DEFAULT_MAX_RETRIES, wait,
+                )
+                time.sleep(wait)
+                backoff *= 2  # exponential backoff
+            except (AuthenticationError, APIStatusError) as e:
+                if not self._is_token_error(e):
+                    raise
+                token_retries += 1
+                if token_retries > _MAX_TOKEN_RETRIES:
+                    logger.error(
+                        "Access-token error persists after %d refresh attempts, giving up",
+                        _MAX_TOKEN_RETRIES,
+                    )
+                    raise
+                logger.warning(
+                    "Access-token error detected (attempt %d/%d): %s — refreshing token",
+                    token_retries, _MAX_TOKEN_RETRIES, e,
+                )
+                refreshed = self._refresh_token()
+                if not refreshed:
+                    logger.error("Token refresh failed, cannot retry")
+                    raise
 
         text = response.output_text or ""
         text = strip_reasoning(text)

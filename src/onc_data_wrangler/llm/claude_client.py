@@ -22,7 +22,7 @@ class ClaudeClient(LLMClient):
         vertex_region: GCP region (for Vertex AI).
     """
 
-    def __init__(self, provider: str = "anthropic", model: str = "claude-opus-4-6", api_key: Optional[str] = None, vertex_project: Optional[str] = None, vertex_region: str = "us-east5"):
+    def __init__(self, provider: str = "anthropic", model: str = "claude-opus-4-6", api_key: Optional[str] = None, vertex_project: Optional[str] = None, vertex_region: str = "global"):
         self.provider = provider
         self.model = model
 
