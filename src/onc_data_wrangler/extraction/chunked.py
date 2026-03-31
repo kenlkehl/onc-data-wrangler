@@ -481,14 +481,52 @@ class CheckpointManager:
         return df
 
     def _build_structured_output(self, final_extractions: dict[str, list]) -> pd.DataFrame:
-        """Build output for structured JSON extractions."""
+        """Build output for structured JSON extractions.
+
+        Handles both multi-diagnosis format (with ``_diagnoses`` key) and
+        legacy single-diagnosis format.
+        """
         rows = []
         for patient_id, extraction in final_extractions.items():
+            has_diagnoses = False
+
             for ext in extraction:
-                if isinstance(ext, dict) and len(ext) == 1:
+                if not isinstance(ext, dict):
+                    continue
+
+                # Multi-diagnosis: per-diagnosis rows
+                if "_diagnoses" in ext:
+                    has_diagnoses = True
+                    for diag_entry in ext["_diagnoses"]:
+                        tumor_idx = diag_entry.get("tumor_index", 0)
+                        for category, attrs in diag_entry.items():
+                            if category == "tumor_index" or not isinstance(attrs, dict):
+                                continue
+                            row = {
+                                "patient_id": patient_id,
+                                "tumor_index": tumor_idx,
+                                "category": category,
+                            }
+                            for k, v in attrs.items():
+                                if isinstance(v, list):
+                                    row[k] = "; ".join(str(item) for item in v)
+                                else:
+                                    row[k] = v
+                            rows.append(row)
+                    continue
+
+                # Patient-level fields (from multi-diagnosis) or
+                # legacy single-diagnosis format
+                if len(ext) == 1:
                     category = next(iter(ext))
+                    if category.startswith("_"):
+                        continue
                     attrs = ext[category]
+                    if not isinstance(attrs, dict):
+                        continue
                     row = {"patient_id": patient_id, "category": category}
+                    if has_diagnoses:
+                        row["tumor_index"] = -1  # Sentinel for patient-level
                     for k, v in attrs.items():
                         if isinstance(v, list):
                             row[k] = "; ".join(str(item) for item in v)

@@ -328,6 +328,23 @@ def _run_standalone_extract(args):
             for entry in result_list:
                 if not isinstance(entry, dict):
                     continue
+                # Multi-diagnosis per-diagnosis fields
+                if "_diagnoses" in entry:
+                    for diag_entry in entry["_diagnoses"]:
+                        tumor_idx = diag_entry.get("tumor_index", 0)
+                        for category, fields in diag_entry.items():
+                            if category == "tumor_index" or not isinstance(fields, dict):
+                                continue
+                            for field_name, value in fields.items():
+                                rows.append({
+                                    "patient_id": pid,
+                                    "tumor_index": tumor_idx,
+                                    "category": category,
+                                    "field": field_name,
+                                    "value": value,
+                                })
+                    continue
+                # Patient-level or legacy single-diagnosis fields
                 for category, fields in entry.items():
                     if category.startswith("_") or not isinstance(fields, dict):
                         continue
@@ -336,6 +353,7 @@ def _run_standalone_extract(args):
                             continue
                         rows.append({
                             "patient_id": pid,
+                            "tumor_index": -1,
                             "category": category,
                             "field": field_name,
                             "value": value,
@@ -354,8 +372,7 @@ def _run_standalone_extract(args):
         dictionary = NAACCRDictionary()
         dictionary.load()
         writer = NAACCRWriter(dictionary)
-        # Convert to {patient_id: {item_number_str: value}} format
-        naaccr_results = _flatten_for_naaccr(all_results)
+        naaccr_results = _flatten_for_naaccr_multi(all_results)
         xml_path = output_path.with_suffix(".xml") if output_path.suffix != ".xml" else output_path
         writer.write_xml(naaccr_results, xml_path)
         print(f"Written: {xml_path}")
@@ -369,7 +386,7 @@ def _run_standalone_extract(args):
         dictionary = NAACCRDictionary()
         dictionary.load()
         writer = NAACCRWriter(dictionary)
-        naaccr_results = _flatten_for_naaccr(all_results)
+        naaccr_results = _flatten_for_naaccr_multi(all_results)
         csv_path = output_path.with_suffix(".csv") if output_path.suffix != ".csv" else output_path
         writer.write_csv(naaccr_results, csv_path)
         print(f"Written: {csv_path}")
@@ -378,10 +395,45 @@ def _run_standalone_extract(args):
     meta_rows = []
     for pid, result_list in all_results.items():
         for entry in result_list:
-            if isinstance(entry, dict) and "_extraction_results" in entry:
-                for fid, r in entry["_extraction_results"].items():
+            if not isinstance(entry, dict) or "_extraction_results" not in entry:
+                continue
+            er = entry["_extraction_results"]
+            if "patient" in er:
+                # Multi-diagnosis metadata format
+                for fid, r in er.get("patient", {}).items():
                     meta_rows.append({
                         "patient_id": pid,
+                        "tumor_index": -1,
+                        "field_id": fid,
+                        "field_name": r.get("field_name", ""),
+                        "extracted_value": r.get("extracted_value", ""),
+                        "resolved_code": r.get("resolved_code", ""),
+                        "confidence": r.get("confidence", 0),
+                        "evidence": r.get("evidence_text", ""),
+                        "ontology_id": r.get("ontology_id", ""),
+                    })
+                for key, results_dict in er.items():
+                    if not key.startswith("diagnosis_"):
+                        continue
+                    tidx = int(key.split("_", 1)[1])
+                    for fid, r in results_dict.items():
+                        meta_rows.append({
+                            "patient_id": pid,
+                            "tumor_index": tidx,
+                            "field_id": fid,
+                            "field_name": r.get("field_name", ""),
+                            "extracted_value": r.get("extracted_value", ""),
+                            "resolved_code": r.get("resolved_code", ""),
+                            "confidence": r.get("confidence", 0),
+                            "evidence": r.get("evidence_text", ""),
+                            "ontology_id": r.get("ontology_id", ""),
+                        })
+            else:
+                # Legacy single-diagnosis metadata
+                for fid, r in er.items():
+                    meta_rows.append({
+                        "patient_id": pid,
+                        "tumor_index": 0,
                         "field_id": fid,
                         "field_name": r.get("field_name", ""),
                         "extracted_value": r.get("extracted_value", ""),
@@ -502,6 +554,61 @@ def _flatten_for_naaccr(all_results: dict) -> dict[str, dict[str, str]]:
                         items[field_name] = str(value)
         if items:
             naaccr_data[pid] = items
+    return naaccr_data
+
+
+def _flatten_for_naaccr_multi(all_results: dict) -> dict[str, list[dict[str, str]]]:
+    """Convert multi-diagnosis results to {patient_id: [tumor_items_dict, ...]} for NAACCRWriter.
+
+    Each patient maps to a list of dicts (one per tumor).  Patient-level
+    items are merged into every tumor dict so the writer can split them
+    into the Patient vs Tumor XML elements.
+    """
+    naaccr_data: dict[str, list[dict[str, str]]] = {}
+
+    for pid, result_list in all_results.items():
+        patient_items: dict[str, str] = {}
+        tumor_items: dict[int, dict[str, str]] = {}
+
+        for entry in result_list:
+            if not isinstance(entry, dict):
+                continue
+
+            if "_extraction_results" in entry:
+                er = entry["_extraction_results"]
+                if "patient" in er:
+                    # Multi-diagnosis metadata
+                    for fid, r in er.get("patient", {}).items():
+                        if r.get("ontology_id") == "naaccr":
+                            patient_items[fid] = r.get("resolved_code", "") or r.get("extracted_value", "")
+                    for key, results_dict in er.items():
+                        if not key.startswith("diagnosis_"):
+                            continue
+                        tidx = int(key.split("_", 1)[1])
+                        if tidx not in tumor_items:
+                            tumor_items[tidx] = {}
+                        for fid, r in results_dict.items():
+                            if r.get("ontology_id") == "naaccr":
+                                tumor_items[tidx][fid] = r.get("resolved_code", "") or r.get("extracted_value", "")
+                else:
+                    # Legacy single-diagnosis
+                    for fid, r in er.items():
+                        if r.get("ontology_id") == "naaccr":
+                            patient_items[fid] = r.get("resolved_code", "") or r.get("extracted_value", "")
+
+        if not tumor_items and patient_items:
+            # Legacy single-diagnosis: everything as one tumor
+            tumor_items[0] = patient_items
+            naaccr_data[pid] = [tumor_items[0]]
+        elif tumor_items:
+            # Merge patient-level items into each tumor dict
+            tumors = []
+            for tidx in sorted(tumor_items.keys()):
+                merged = dict(patient_items)
+                merged.update(tumor_items[tidx])
+                tumors.append(merged)
+            naaccr_data[pid] = tumors
+
     return naaccr_data
 
 

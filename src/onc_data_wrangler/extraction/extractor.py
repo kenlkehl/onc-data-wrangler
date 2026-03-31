@@ -24,12 +24,15 @@ from .schema_builder import SchemaBuilder
 from .code_resolver import GenericCodeResolver
 from .domain_groups import (
     build_naaccr_domain_groups,
+    build_naaccr_domain_groups_multi,
     build_generic_domain_groups,
+    build_generic_domain_groups_multi,
     build_prior_state_block,
     build_prior_narratives_block,
     CHUNK_USER_TEMPLATE,
     NARRATIVE_USER_TEMPLATE,
 )
+from .diagnosis_discovery import DiagnosisInfo, discover_diagnoses
 from ..ontologies.protocols import DomainGroup
 
 logger = logging.getLogger(__name__)
@@ -140,6 +143,10 @@ class Extractor:
         self._domain_groups: dict[str, list[DomainGroup]] = {}
         self._item_registries: dict[str, dict[str, Any]] = {}  # field_id -> item
 
+        # Multi-diagnosis domain groups: (patient_groups, diagnosis_groups)
+        self._patient_groups: dict[str, list[DomainGroup]] = {}
+        self._diagnosis_groups: dict[str, list[DomainGroup]] = {}
+
         for oid in self.ontology_ids:
             ont = OntologyRegistry.get(oid)
             self._ontologies[oid] = ont
@@ -155,13 +162,20 @@ class Extractor:
             resolver = GenericCodeResolver.from_data_items(all_items)
         self._code_resolvers[oid] = resolver
 
-        # Domain groups
+        # Domain groups (legacy single-diagnosis — kept for backward compat)
         if oid == "naaccr":
             from ..ontologies.builtins.naaccr.schema_registry import SchemaRegistry
             self._naaccr_schema_registry = SchemaRegistry()
             self._domain_groups[oid] = build_naaccr_domain_groups()
+            # Multi-diagnosis groups
+            pg, dg = build_naaccr_domain_groups_multi()
+            self._patient_groups[oid] = pg
+            self._diagnosis_groups[oid] = dg
         else:
             self._domain_groups[oid] = build_generic_domain_groups(ont)
+            pg, dg = build_generic_domain_groups_multi(ont)
+            self._patient_groups[oid] = pg
+            self._diagnosis_groups[oid] = dg
 
         # Item registry: field_id -> item object
         registry: dict[str, Any] = {}
@@ -215,35 +229,49 @@ class Extractor:
         max_tokens: Optional[int] = 8000,
         max_retries: int = 3,
     ) -> list[dict]:
-        """Extract from a single chunk using domain-group processing.
+        """Extract from a single chunk using multi-diagnosis domain-group processing.
 
-        Returns list[dict] in the format ``[{category: {field: value}}]``
-        for backward compatibility with ChunkedExtractor and downstream.
+        1. Discovers all distinct cancer diagnoses (chunk 0 only).
+        2. Extracts patient-level fields once (shared across diagnoses).
+        3. For each diagnosis, extracts diagnosis-level fields with
+           per-diagnosis schema resolution and tumor context.
+
+        Returns list[dict] encoding patient-level fields, per-diagnosis
+        fields, and metadata for round-trip fidelity across chunks.
         """
         if running is None:
             running = []
 
         ct = cancer_type or self.cancer_type
 
-        # Convert running list to internal ExtractionResult state
-        internal_state = self._list_to_internal(running)
+        # Reconstruct multi-diagnosis state from prior running output
+        patient_state, diagnosis_states, discovered = self._list_to_internal_multi(running)
 
-        # Process each ontology's domain groups
+        # --- Phase 1: Diagnosis discovery (first chunk only) ---
+        if not discovered:
+            discovered = discover_diagnoses(
+                self.llm_client, chunk_text, max_tokens=4096, max_retries=max_retries,
+            )
+            # Ensure diagnosis_states exist for each discovered diagnosis
+            for diag in discovered:
+                if diag.tumor_index not in diagnosis_states:
+                    diagnosis_states[diag.tumor_index] = {}
+
+        # --- Phase 2: Extract patient-level fields (once) ---
         for oid in self.ontology_ids:
-            ont = self._ontologies[oid]
             resolver = self._code_resolvers[oid]
-            groups = self._domain_groups[oid]
             item_registry = self._item_registries.get(oid, {})
+            patient_groups = self._patient_groups.get(oid, [])
 
             context: dict[str, str] = {"cancer_type": ct}
 
-            for group in groups:
+            for group in patient_groups:
                 try:
                     group_results = self._extract_domain_group(
                         group=group,
                         chunk_text=chunk_text,
-                        internal_state=internal_state,
-                        ont=ont,
+                        internal_state=patient_state,
+                        ont=self._ontologies[oid],
                         oid=oid,
                         resolver=resolver,
                         item_registry=item_registry,
@@ -253,20 +281,70 @@ class Extractor:
                         max_tokens=max_tokens,
                         max_retries=max_retries,
                     )
-                    internal_state = merge_results(internal_state, group_results)
-
-                    # After demographics: resolve schema for NAACCR
-                    if oid == "naaccr" and group.group_id == "demographics":
-                        self._resolve_naaccr_schema(internal_state, context, groups)
-
+                    patient_state = merge_results(patient_state, group_results)
                 except Exception:
                     logger.exception(
-                        "Error in domain group %s/%s, chunk %d/%d",
-                        oid, group.group_id, chunk_index + 1, total_chunks,
+                        "Error in patient-level group %s/%s", oid, group.group_id,
                     )
 
+        # --- Phase 3: Per-diagnosis extraction ---
+        for diag in discovered:
+            tidx = diag.tumor_index
+            diag_state = diagnosis_states.get(tidx, {})
+
+            # Seed diagnosis identity from discovery results
+            diag_state = self._seed_from_diagnosis(diag, diag_state)
+
+            for oid in self.ontology_ids:
+                resolver = self._code_resolvers[oid]
+                item_registry = self._item_registries.get(oid, {})
+                # Fresh copy of diagnosis groups so dynamic field_ids don't
+                # leak between diagnoses (staging group is dynamic)
+                diag_groups = self._copy_diagnosis_groups(oid)
+
+                context = dict(self._base_context_from_diagnosis(diag, ct))
+
+                # Schema resolution for this specific diagnosis (NAACCR)
+                if oid == "naaccr":
+                    self._resolve_naaccr_schema(diag_state, context, diag_groups)
+
+                tumor_context = self._build_tumor_context(diag, len(discovered))
+
+                for group in diag_groups:
+                    try:
+                        # Inject tumor_context into the context dict so
+                        # _build_system_prompt can substitute it
+                        context["tumor_context"] = tumor_context
+
+                        group_results = self._extract_domain_group(
+                            group=group,
+                            chunk_text=chunk_text,
+                            internal_state=diag_state,
+                            ont=self._ontologies[oid],
+                            oid=oid,
+                            resolver=resolver,
+                            item_registry=item_registry,
+                            context=context,
+                            chunk_index=chunk_index,
+                            total_chunks=total_chunks,
+                            max_tokens=max_tokens,
+                            max_retries=max_retries,
+                            tumor_context=tumor_context,
+                        )
+                        # Tag results with tumor_index
+                        for r in group_results:
+                            r.tumor_index = tidx
+                        diag_state = merge_results(diag_state, group_results)
+                    except Exception:
+                        logger.exception(
+                            "Error in diagnosis %d group %s/%s",
+                            tidx, oid, group.group_id,
+                        )
+
+            diagnosis_states[tidx] = diag_state
+
         # Convert back to list[dict] format
-        return self._internal_to_list(internal_state)
+        return self._internal_to_list_multi(patient_state, diagnosis_states, discovered)
 
     def extract_iterative(
         self,
@@ -302,6 +380,7 @@ class Extractor:
         total_chunks: int,
         max_tokens: Optional[int],
         max_retries: int,
+        tumor_context: str = "",
     ) -> list[ExtractionResult]:
         """Extract one domain group's items from the chunk."""
 
@@ -342,6 +421,7 @@ class Extractor:
                     total_chunks=total_chunks,
                     max_tokens=max_tokens,
                     max_retries=max_retries,
+                    tumor_context=tumor_context,
                 )
                 all_results.extend(results)
             except Exception:
@@ -364,6 +444,7 @@ class Extractor:
         total_chunks: int,
         max_tokens: Optional[int],
         max_retries: int,
+        tumor_context: str = "",
     ) -> list[ExtractionResult]:
         """Extract a batch of items via a single LLM call."""
         # Build JSON format instructions
@@ -397,7 +478,7 @@ class Extractor:
                 first_date="",
                 last_date="",
                 chunk_text=chunk_text,
-                tumor_context="",
+                tumor_context=tumor_context,
                 prior_state_block=prior_block,
                 json_field_descriptions=json_instructions,
             )
@@ -450,7 +531,7 @@ class Extractor:
         # Substitute known context variables
         format_kwargs = {"json_format_instructions": json_instructions}
         for key in ["primary_site", "histology", "primary_site_desc", "site_context",
-                     "domain_name", "domain_context"]:
+                     "domain_name", "domain_context", "tumor_context"]:
             if f"{{{key}}}" in template:
                 format_kwargs[key] = context.get(key, "unknown")
 
@@ -614,6 +695,92 @@ class Extractor:
                 break
 
     # ------------------------------------------------------------------
+    # Multi-diagnosis helpers
+    # ------------------------------------------------------------------
+
+    def _copy_diagnosis_groups(self, oid: str) -> list[DomainGroup]:
+        """Return a fresh copy of diagnosis-level groups for one ontology.
+
+        The staging group is ``dynamic=True`` and its ``field_ids`` are
+        populated at runtime; a fresh copy prevents leaking between
+        diagnoses.
+        """
+        import copy
+        return copy.deepcopy(self._diagnosis_groups.get(oid, []))
+
+    def _seed_from_diagnosis(
+        self,
+        diag: DiagnosisInfo,
+        state: dict[str, ExtractionResult],
+    ) -> dict[str, ExtractionResult]:
+        """Pre-populate extraction state from discovery results.
+
+        Only seeds fields that are not already present with higher
+        confidence, so that actual extraction can override discovery.
+        """
+        seeds: list[tuple[str, str, str, str]] = []  # (field_id, field_name, value, evidence)
+        if diag.primary_site:
+            seeds.append(("400", "primarySite", diag.primary_site, diag.evidence))
+        if diag.histology:
+            seeds.append(("522", "histologicTypeIcdO3", diag.histology, diag.evidence))
+        if diag.date_of_diagnosis:
+            seeds.append(("390", "dateOfDiagnosis", diag.date_of_diagnosis, diag.evidence))
+        if diag.laterality:
+            seeds.append(("410", "laterality", diag.laterality, diag.evidence))
+
+        for fid, fname, value, evidence in seeds:
+            existing = state.get(fid)
+            seed_conf = diag.confidence * 0.8  # Slightly lower than direct extraction
+            if existing is None or existing.confidence < seed_conf:
+                state[fid] = ExtractionResult(
+                    field_id=fid,
+                    field_name=fname,
+                    extracted_value=value,
+                    resolved_code=value,
+                    confidence=round(seed_conf, 4),
+                    evidence_text=evidence[:300],
+                    source_chunk_id="discovery",
+                    source_chunk_type="discovery",
+                    pass_number=0,
+                    ontology_id="naaccr",
+                    tumor_index=diag.tumor_index,
+                )
+        return state
+
+    @staticmethod
+    def _base_context_from_diagnosis(diag: DiagnosisInfo, cancer_type: str) -> dict[str, str]:
+        """Build a context dict from a DiagnosisInfo."""
+        return {
+            "cancer_type": cancer_type,
+            "primary_site": diag.primary_site or "unknown",
+            "histology": diag.histology or "unknown",
+        }
+
+    @staticmethod
+    def _build_tumor_context(diag: DiagnosisInfo, total_diagnoses: int) -> str:
+        """Build a tumor_context string telling the LLM which diagnosis to extract for."""
+        if total_diagnoses <= 1:
+            return ""
+        parts = [
+            f"EXTRACTING FOR DIAGNOSIS {diag.tumor_index + 1} OF {total_diagnoses}:",
+        ]
+        if diag.primary_site or diag.primary_site_description:
+            site = diag.primary_site_description or diag.primary_site
+            parts.append(f"Primary Site: {diag.primary_site} ({site})")
+        if diag.histology or diag.histology_description:
+            hist = diag.histology_description or diag.histology
+            parts.append(f"Histology: {diag.histology} ({hist})")
+        if diag.date_of_diagnosis:
+            parts.append(f"Date of Diagnosis: {diag.date_of_diagnosis}")
+        if diag.laterality and diag.laterality != "not_applicable":
+            parts.append(f"Laterality: {diag.laterality}")
+        parts.append(
+            "Extract ONLY information pertaining to THIS specific cancer diagnosis. "
+            "Do NOT include data from the patient's other cancer(s)."
+        )
+        return "\n".join(parts)
+
+    # ------------------------------------------------------------------
     # Format conversion (internal <-> list[dict])
     # ------------------------------------------------------------------
 
@@ -690,6 +857,159 @@ class Extractor:
         output.append({"_extraction_results": metadata})
 
         return output
+
+    # ------------------------------------------------------------------
+    # Multi-diagnosis format conversion
+    # ------------------------------------------------------------------
+
+    def _list_to_internal_multi(
+        self,
+        running: list[dict],
+    ) -> tuple[
+        dict[str, ExtractionResult],        # patient_state
+        dict[int, dict[str, ExtractionResult]],  # diagnosis_states
+        list[DiagnosisInfo],                # discovered diagnoses
+    ]:
+        """Reconstruct multi-diagnosis state from the list[dict] output format."""
+        patient_state: dict[str, ExtractionResult] = {}
+        diagnosis_states: dict[int, dict[str, ExtractionResult]] = {}
+        discovered: list[DiagnosisInfo] = []
+
+        if not running:
+            return patient_state, diagnosis_states, discovered
+
+        for entry in running:
+            if not isinstance(entry, dict):
+                continue
+
+            # Discovered diagnoses
+            if "_discovered_diagnoses" in entry:
+                for d in entry["_discovered_diagnoses"]:
+                    discovered.append(DiagnosisInfo.from_dict(d))
+                continue
+
+            # Multi-diagnosis metadata
+            if "_extraction_results" in entry:
+                er = entry["_extraction_results"]
+                if "patient" in er:
+                    # Multi-diagnosis format
+                    for fid, rd in er.get("patient", {}).items():
+                        patient_state[fid] = ExtractionResult.from_dict(rd)
+                    for key, results_dict in er.items():
+                        if key.startswith("diagnosis_"):
+                            tidx = int(key.split("_", 1)[1])
+                            if tidx not in diagnosis_states:
+                                diagnosis_states[tidx] = {}
+                            for fid, rd in results_dict.items():
+                                diagnosis_states[tidx][fid] = ExtractionResult.from_dict(rd)
+                else:
+                    # Legacy single-diagnosis format — treat all as diagnosis 0
+                    for fid, rd in er.items():
+                        r = ExtractionResult.from_dict(rd)
+                        if fid in _PATIENT_LEVEL_FIELD_IDS:
+                            patient_state[fid] = r
+                        else:
+                            if 0 not in diagnosis_states:
+                                diagnosis_states[0] = {}
+                            diagnosis_states[0][fid] = r
+                continue
+
+            # Per-diagnosis fields
+            if "_diagnoses" in entry:
+                for diag_entry in entry["_diagnoses"]:
+                    tidx = diag_entry.get("tumor_index", 0)
+                    if tidx not in diagnosis_states:
+                        diagnosis_states[tidx] = {}
+                    # Values are already in diagnosis_states via metadata
+                continue
+
+            # Patient-level fields (ontology dicts at top level)
+            for category, fields in entry.items():
+                if category.startswith("_") or not isinstance(fields, dict):
+                    continue
+                for field_name, value in fields.items():
+                    if field_name.startswith("_"):
+                        continue
+                    patient_state[field_name] = ExtractionResult(
+                        field_id=field_name,
+                        field_name=field_name,
+                        extracted_value=str(value),
+                        resolved_code=str(value),
+                        confidence=0.5,
+                        evidence_text="",
+                        source_chunk_id="prior",
+                        source_chunk_type="prior",
+                        pass_number=0,
+                    )
+
+        return patient_state, diagnosis_states, discovered
+
+    def _internal_to_list_multi(
+        self,
+        patient_state: dict[str, ExtractionResult],
+        diagnosis_states: dict[int, dict[str, ExtractionResult]],
+        discovered: list[DiagnosisInfo],
+    ) -> list[dict]:
+        """Convert multi-diagnosis state to list[dict] for checkpointing.
+
+        Output format::
+
+            [
+                {oid: {patient_field: value, ...}},
+                {"_diagnoses": [
+                    {"tumor_index": 0, oid: {field: value}},
+                    {"tumor_index": 1, oid: {field: value}},
+                ]},
+                {"_extraction_results": {
+                    "patient": {fid: result_dict, ...},
+                    "diagnosis_0": {fid: result_dict, ...},
+                }},
+                {"_discovered_diagnoses": [diag_dict, ...]},
+            ]
+        """
+        output: list[dict] = []
+
+        # Patient-level fields grouped by ontology
+        by_ontology: dict[str, dict[str, str]] = {}
+        for fid, result in patient_state.items():
+            oid = result.ontology_id or "extraction"
+            if oid not in by_ontology:
+                by_ontology[oid] = {}
+            by_ontology[oid][result.field_name] = result.resolved_code or result.extracted_value
+        for oid, fields in by_ontology.items():
+            output.append({oid: fields})
+
+        # Per-diagnosis fields
+        diagnoses_list: list[dict] = []
+        for tidx in sorted(diagnosis_states.keys()):
+            diag_entry: dict[str, Any] = {"tumor_index": tidx}
+            by_ont: dict[str, dict[str, str]] = {}
+            for fid, result in diagnosis_states[tidx].items():
+                oid = result.ontology_id or "extraction"
+                if oid not in by_ont:
+                    by_ont[oid] = {}
+                by_ont[oid][result.field_name] = result.resolved_code or result.extracted_value
+            diag_entry.update(by_ont)
+            diagnoses_list.append(diag_entry)
+        output.append({"_diagnoses": diagnoses_list})
+
+        # Metadata for round-trip
+        metadata: dict[str, dict[str, dict]] = {}
+        metadata["patient"] = {fid: r.to_dict() for fid, r in patient_state.items()}
+        for tidx, dstate in diagnosis_states.items():
+            metadata[f"diagnosis_{tidx}"] = {fid: r.to_dict() for fid, r in dstate.items()}
+        output.append({"_extraction_results": metadata})
+
+        # Persist discovered diagnoses for subsequent chunks
+        output.append({"_discovered_diagnoses": [d.to_dict() for d in discovered]})
+
+        return output
+
+
+# Set of NAACCR field IDs that are patient-level (for legacy format detection)
+_PATIENT_LEVEL_FIELD_IDS = {
+    "150", "160", "161", "190", "220", "240", "252", "254",
+}
 
 
 # ---------------------------------------------------------------------------

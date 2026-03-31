@@ -62,6 +62,7 @@ class ExtractionResult:
     source_chunk_type: str     # chunk type
     pass_number: int           # chunk index (round number) that produced this
     ontology_id: str = ""      # which ontology this field belongs to
+    tumor_index: int = 0       # which diagnosis this belongs to (0-based)
 
     def to_dict(self) -> dict:
         """Serialize to a plain dict for JSON checkpointing."""
@@ -101,6 +102,30 @@ def merge_results(
 
         if result.confidence > current.confidence:
             merged[fid] = result
+
+    return merged
+
+
+# Type alias for multi-diagnosis state: (tumor_index, field_id) -> result
+MultiDiagnosisState = dict[tuple[int, str], ExtractionResult]
+
+
+def merge_results_multi(
+    existing: MultiDiagnosisState,
+    new_results: list[ExtractionResult],
+) -> MultiDiagnosisState:
+    """Merge *new_results* into *existing* keyed by ``(tumor_index, field_id)``.
+
+    Higher confidence wins per ``(tumor_index, field_id)`` pair.
+    """
+    merged = dict(existing)
+
+    for result in new_results:
+        key = (result.tumor_index, result.field_id)
+        current = merged.get(key)
+
+        if current is None or result.confidence > current.confidence:
+            merged[key] = result
 
     return merged
 

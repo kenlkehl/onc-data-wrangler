@@ -24,6 +24,27 @@ DEMOGRAPHICS_ITEMS = [
     150, 160, 161, 190, 220, 230, 240, 252, 254,
 ]
 
+# Patient-level items: extracted once, shared across all diagnoses
+PATIENT_LEVEL_ITEMS = [
+    150, 160, 161, 190,   # Race 1-3, Spanish/Hispanic Origin
+    220,                   # Sex
+    240,                   # Date of Birth
+    252, 254,             # Birthplace Country, State
+]
+
+# Diagnosis-level items from demographics: extracted per diagnosis
+DIAGNOSIS_IDENTITY_ITEMS = [
+    380,                   # Sequence Number--Central
+    390,                   # Date of Diagnosis
+    400,                   # Primary Site
+    410,                   # Laterality
+    440, 441, 442, 449, 450,  # Grade fields
+    470, 490,             # Diagnostic Confirmation
+    500,                   # Date of Diagnosis Flag
+    522, 523,             # Histologic Type, Behavior Code
+    230,                   # Age at Diagnosis (may differ per diagnosis)
+]
+
 SURGERY_ITEMS = [
     1200, 1290, 1291, 1292, 1294, 1296, 1310, 1320, 1330, 1340, 1350,
     1640, 3170, 3180, 3190,
@@ -384,3 +405,168 @@ def build_generic_domain_groups(ontology: Any) -> list[DomainGroup]:
         ))
 
     return groups
+
+
+# ---------------------------------------------------------------------------
+# Multi-diagnosis domain group builders
+# ---------------------------------------------------------------------------
+
+PATIENT_DEMOGRAPHICS_PROMPT = """\
+You are an expert cancer registrar certified by the NCRA. You extract NAACCR v26 \
+cancer registry data items from clinical text with registry-grade precision.
+
+TASK: Extract PATIENT-LEVEL demographics that apply to the person regardless \
+of how many cancers they have (sex, race, birthplace, date of birth).
+
+CRITICAL RULES:
+1. These items describe the PATIENT, not any specific cancer diagnosis.
+2. Extract ONLY what is explicitly stated. Do not infer.
+3. For each item, rate confidence 0.0-1.0 and quote supporting evidence (max 200 chars).
+
+{json_format_instructions}"""
+
+DIAGNOSIS_DEMOGRAPHICS_PROMPT = """\
+You are an expert cancer registrar certified by the NCRA. You extract NAACCR v26 \
+cancer registry data items from clinical text with registry-grade precision.
+
+TASK: Extract diagnosis identification data for ONE SPECIFIC cancer diagnosis.
+
+{tumor_context}
+
+CRITICAL RULES:
+1. Primary Site: ICD-O-3 topography code (C##.#). Extract ONLY for the specified diagnosis.
+2. Histologic Type: ICD-O-3 morphology code (4 digits, 8000-9989).
+3. Behavior Code: 0=benign, 1=uncertain, 2=in situ, 3=malignant primary.
+4. Date of Diagnosis: EARLIEST date THIS cancer was first suspected/confirmed (YYYYMMDD).
+5. Do NOT confuse this diagnosis with other cancers the patient may have.
+6. For each item, rate confidence 0.0-1.0 and quote supporting evidence (max 200 chars).
+
+{json_format_instructions}"""
+
+
+def build_naaccr_domain_groups_multi() -> tuple[list[DomainGroup], list[DomainGroup]]:
+    """Return ``(patient_groups, diagnosis_groups)`` for multi-diagnosis extraction.
+
+    Splits the demographics group into patient-level (sex, race, etc.) and
+    diagnosis-level (primary site, histology, etc.).  All other groups are
+    diagnosis-level.
+    """
+    patient_groups = [
+        DomainGroup(
+            group_id="demographics_patient",
+            name="Patient Demographics",
+            field_ids=[str(n) for n in PATIENT_LEVEL_ITEMS],
+            system_prompt_template=PATIENT_DEMOGRAPHICS_PROMPT,
+            depends_on=[],
+            context_keys=[],
+        ),
+    ]
+
+    diagnosis_groups = [
+        DomainGroup(
+            group_id="demographics_diagnosis",
+            name="Diagnosis Identification",
+            field_ids=[str(n) for n in DIAGNOSIS_IDENTITY_ITEMS],
+            system_prompt_template=DIAGNOSIS_DEMOGRAPHICS_PROMPT,
+            depends_on=[],
+            context_keys=[],
+        ),
+        DomainGroup(
+            group_id="staging",
+            name="Staging & Prognostic Factors",
+            field_ids=[],
+            system_prompt_template=STAGING_SYSTEM_PROMPT,
+            depends_on=["demographics_diagnosis"],
+            context_keys=["primary_site", "histology", "schema"],
+            dynamic=True,
+        ),
+        DomainGroup(
+            group_id="surgery",
+            name="Surgical Treatment",
+            field_ids=[str(n) for n in SURGERY_ITEMS],
+            system_prompt_template=SURGERY_SYSTEM_PROMPT,
+            depends_on=["demographics_diagnosis"],
+            context_keys=["primary_site"],
+        ),
+        DomainGroup(
+            group_id="radiation",
+            name="Radiation Treatment",
+            field_ids=[str(n) for n in RADIATION_ITEMS],
+            system_prompt_template=RADIATION_SYSTEM_PROMPT,
+            depends_on=["demographics_diagnosis"],
+        ),
+        DomainGroup(
+            group_id="systemic",
+            name="Systemic Therapy",
+            field_ids=[str(n) for n in SYSTEMIC_ITEMS],
+            system_prompt_template=SYSTEMIC_SYSTEM_PROMPT,
+            depends_on=["demographics_diagnosis"],
+        ),
+        DomainGroup(
+            group_id="followup",
+            name="Follow-up & Outcomes",
+            field_ids=[str(n) for n in FOLLOWUP_ITEMS],
+            system_prompt_template=FOLLOWUP_SYSTEM_PROMPT,
+            depends_on=[],
+        ),
+        DomainGroup(
+            group_id="narratives",
+            name="Narrative Summaries",
+            field_ids=[str(n) for n in TEXT_ITEMS],
+            system_prompt_template=NARRATIVE_SYSTEM_PROMPT,
+            depends_on=[],
+            is_narrative=True,
+        ),
+    ]
+
+    return patient_groups, diagnosis_groups
+
+
+def build_generic_domain_groups_multi(ontology: Any) -> tuple[list[DomainGroup], list[DomainGroup]]:
+    """Split generic ontology groups into patient-level and diagnosis-level.
+
+    Uses ``DataCategory.per_diagnosis`` to classify each category.
+    """
+    patient_groups: list[DomainGroup] = []
+    diagnosis_groups: list[DomainGroup] = []
+    seen_ids: set[str] = set()
+
+    categories = ontology.get_base_items()
+    try:
+        site_categories = ontology.get_site_specific_items("generic")
+        categories = categories + site_categories
+    except Exception:
+        pass
+
+    for cat in categories:
+        if cat.id in seen_ids:
+            continue
+        seen_ids.add(cat.id)
+
+        field_ids = []
+        for item in cat.items:
+            fid = getattr(item, "json_field", None) or getattr(item, "id", None) or item.name
+            field_ids.append(fid)
+
+        group = DomainGroup(
+            group_id=cat.id,
+            name=cat.name,
+            field_ids=field_ids,
+            system_prompt_template=GENERIC_DOMAIN_SYSTEM_PROMPT,
+            depends_on=[],
+            context_keys=[],
+        )
+
+        if getattr(cat, "per_diagnosis", False):
+            diagnosis_groups.append(group)
+        else:
+            patient_groups.append(group)
+
+    # If no categories are marked per_diagnosis, treat everything as diagnosis-level
+    # (backward compatible: all groups run per-diagnosis, which for a single
+    # diagnosis is equivalent to the old behaviour)
+    if not diagnosis_groups:
+        diagnosis_groups = patient_groups
+        patient_groups = []
+
+    return patient_groups, diagnosis_groups
