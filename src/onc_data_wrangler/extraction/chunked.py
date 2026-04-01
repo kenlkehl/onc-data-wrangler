@@ -444,16 +444,19 @@ class CheckpointManager:
 
         If all extractions are clinical summaries (free-text), saves as
         summaries.parquet with columns [patient_id, summary] instead.
+
+        If all extractions are QA answers, saves as qa_results.parquet
+        with columns [patient_id, question, value, confidence, evidence].
         """
         final_extractions = self.load_final_extractions()
         if not final_extractions:
             return pd.DataFrame()
 
-        # Check if this is a summary-only extraction
-        is_summary = _is_summary_extraction(final_extractions)
-
-        if is_summary:
+        # Check extraction type
+        if _is_summary_extraction(final_extractions):
             return self._build_summary_output(final_extractions)
+        if _is_qa_extraction(final_extractions):
+            return self._build_qa_output(final_extractions)
         return self._build_structured_output(final_extractions)
 
     def load_final_extractions(self) -> dict[str, list]:
@@ -478,6 +481,28 @@ class CheckpointManager:
         out_path = self.output_dir / "summaries.parquet"
         df.to_parquet(out_path, index=False)
         logger.info("Saved summaries %s (%d patients)", out_path, len(df))
+        return df
+
+    def _build_qa_output(self, final_extractions: dict[str, list]) -> pd.DataFrame:
+        """Build output for clinical QA extractions."""
+        from .qa_extractor import _unwrap_qa
+
+        rows = []
+        for patient_id, extraction in final_extractions.items():
+            answers = _unwrap_qa(extraction)
+            for question, ans in answers.items():
+                rows.append({
+                    "patient_id": patient_id,
+                    "question": question,
+                    "value": ans.get("value", ""),
+                    "confidence": ans.get("confidence", 0),
+                    "evidence": ans.get("evidence", ""),
+                })
+
+        df = pd.DataFrame(rows)
+        out_path = self.output_dir / "qa_results.parquet"
+        df.to_parquet(out_path, index=False)
+        logger.info("Saved QA results %s (%d rows)", out_path, len(df))
         return df
 
     def _build_structured_output(self, final_extractions: dict[str, list]) -> pd.DataFrame:
@@ -555,7 +580,7 @@ class CheckpointManager:
             legacy.unlink()
         for shard in self.output_dir.glob("shard_*.parquet"):
             shard.unlink()
-        for name in ("extractions.parquet", "summaries.parquet"):
+        for name in ("extractions.parquet", "summaries.parquet", "qa_results.parquet"):
             out = self.output_dir / name
             if out.exists():
                 out.unlink()
@@ -570,4 +595,14 @@ def _is_summary_extraction(final_extractions: dict[str, list]) -> bool:
             if isinstance(entry, dict) and "clinical_summary" in entry:
                 return True
             return False  # First non-summary entry means structured
+    return False
+
+
+def _is_qa_extraction(final_extractions: dict[str, list]) -> bool:
+    """Check if extractions are clinical QA answers."""
+    for extraction in final_extractions.values():
+        for entry in extraction:
+            if isinstance(entry, dict) and "_qa_answers" in entry:
+                return True
+            return False
     return False

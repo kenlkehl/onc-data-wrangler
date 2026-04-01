@@ -1126,9 +1126,13 @@ def create_extractor(
     ontology_ids: list[str],
     cancer_type: Optional[str] = "generic",
     items_per_call: int = DEFAULT_ITEMS_PER_CALL,
+    questions: Optional[list[dict]] = None,
     **kwargs,
 ):
     """Factory that returns the appropriate extractor based on ontology types."""
+    if questions is not None:
+        from .qa_extractor import QAExtractor
+        return QAExtractor(llm_client, questions)
     if is_summary_only(ontology_ids):
         return SummaryExtractor(llm_client, cancer_type)
     return Extractor(llm_client, ontology_ids, cancer_type, items_per_call)

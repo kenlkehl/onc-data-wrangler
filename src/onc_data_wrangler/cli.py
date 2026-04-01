@@ -82,6 +82,26 @@ def main():
     p_extract.add_argument("--resume", action="store_true", help="Resume extraction from checkpoint in work directory")
     p_extract.add_argument("--work-dir", default=None, help="Directory for intermediate round files (default: <output_stem>_work/)")
 
+    # qa (clinical question answering)
+    p_qa = subparsers.add_parser("qa", help="Answer clinical questions from patient notes")
+    p_qa.add_argument("--input", required=True, help="Notes file (CSV/parquet)")
+    p_qa.add_argument("--questions", required=True, help="Questions file (text, one per line)")
+    p_qa.add_argument("-o", "--output", default=None, help="Output JSONL path")
+    p_qa.add_argument("--patient-id-column", default="patient_id", help="Column containing patient IDs (default: patient_id)")
+    p_qa.add_argument("--text-column", default="text", help="Column containing note text (default: text)")
+    p_qa.add_argument("--date-column", default="date", help="Column containing note dates (default: date)")
+    p_qa.add_argument("--note-type-column", default="note_type", help="Column containing note type labels (default: note_type)")
+    p_qa.add_argument("--provider", choices=["openai", "anthropic", "vertex", "azure"], default="openai", help="LLM provider (default: openai)")
+    p_qa.add_argument("--vllm-url", default=None, help="vLLM server URL (e.g. http://localhost:8000/v1)")
+    p_qa.add_argument("--model", default=None, help="Model name on the LLM server")
+    p_qa.add_argument("--api-key", default=None, help="API key (or set env var)")
+    p_qa.add_argument("--chunk-tokens", type=int, default=50000, help="Tokens per text chunk (default: 50000)")
+    p_qa.add_argument("--overlap-tokens", type=int, default=500, help="Overlap between text chunks (default: 500)")
+    p_qa.add_argument("--patient-workers", type=int, default=8, help="Patients to process concurrently (default: 8)")
+    p_qa.add_argument("--max-tokens", type=int, default=16384, help="Max output tokens per LLM call (default: 16384)")
+    p_qa.add_argument("--resume", action="store_true", help="Resume from checkpoint in work directory")
+    p_qa.add_argument("--work-dir", default=None, help="Directory for intermediate round files (default: <output_stem>_work/)")
+
     # finetune
     p_finetune = subparsers.add_parser("finetune", help="Fine-tune a summary model using GRPO")
     p_finetune.add_argument("config", help="Path to project YAML config")
@@ -164,6 +184,9 @@ def main():
 
     elif args.command == "extract":
         _run_standalone_extract(args)
+
+    elif args.command == "qa":
+        _run_qa(args)
 
     elif args.command == "metadata":
         from .agents.pipeline import _run_metadata
@@ -447,6 +470,118 @@ def _run_standalone_extract(args):
         pd.DataFrame(meta_rows).to_csv(meta_path, index=False)
         print(f"Metadata: {meta_path} ({len(meta_rows)} field extractions)")
 
+    print("Done.")
+
+
+def _run_qa(args):
+    """Run clinical question-answering from a notes file."""
+    from pathlib import Path
+
+    import pandas as pd
+
+    from .extraction.qa_extractor import parse_questions, build_qa_output
+
+    input_path = Path(args.input)
+    if not input_path.exists():
+        print(f"ERROR: Input file not found: {input_path}")
+        sys.exit(1)
+
+    questions_path = Path(args.questions)
+    if not questions_path.exists():
+        print(f"ERROR: Questions file not found: {questions_path}")
+        sys.exit(1)
+
+    # --- Load questions ---
+    questions = parse_questions(str(questions_path))
+    print(f"Loaded {len(questions)} questions from {questions_path.name}")
+
+    # --- Load notes ---
+    suffix = input_path.suffix.lower()
+    if suffix in (".csv", ".tsv"):
+        sep = "\t" if suffix == ".tsv" else ","
+        raw_df = pd.read_csv(input_path, sep=sep, low_memory=False)
+    elif suffix == ".parquet":
+        raw_df = pd.read_parquet(input_path)
+    else:
+        print(f"ERROR: Unsupported file type: {suffix} (use CSV or parquet)")
+        sys.exit(1)
+
+    notes_df, patient_order = _prepare_standalone_notes_df(
+        raw_df,
+        patient_id_col=args.patient_id_column,
+        text_col=args.text_column,
+        date_col=args.date_column,
+    )
+    print(f"Loaded {len(raw_df)} rows, {len(patient_order)} patients from {input_path.name}")
+
+    if args.text_column not in notes_df.columns:
+        print(f"ERROR: Text column not found: {args.text_column}")
+        sys.exit(1)
+
+    # --- Create LLM client ---
+    llm_client = _create_standalone_llm(args)
+
+    # --- Create QA extractor ---
+    from .extraction.extractor import create_extractor
+
+    extractor = create_extractor(
+        llm_client=llm_client,
+        ontology_ids=[],
+        questions=questions,
+    )
+
+    # --- Optionally load a tokenizer ---
+    tokenizer = None
+    try:
+        from transformers import AutoTokenizer
+        model_name = args.model or "gpt2"
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+    except Exception:
+        pass
+
+    # --- Output paths ---
+    output_path = Path(args.output) if args.output else input_path.with_name(f"{input_path.stem}_qa.jsonl")
+
+    if args.work_dir:
+        work_dir = Path(args.work_dir)
+    else:
+        work_dir = output_path.parent / f"{output_path.stem}_work"
+    work_dir.mkdir(parents=True, exist_ok=True)
+
+    print(
+        f"Running QA extraction: {len(patient_order)} patients, "
+        f"{len(questions)} questions, {args.patient_workers} workers"
+    )
+    print(f"Work directory: {work_dir}")
+
+    # --- Run extraction ---
+    from .extraction.chunked import ChunkedExtractor, CheckpointManager
+
+    chunked = ChunkedExtractor(
+        extractor=extractor,
+        tokenizer=tokenizer,
+        chunk_size=args.chunk_tokens,
+        overlap=args.overlap_tokens,
+        max_retries=3,
+        patient_workers=args.patient_workers,
+        max_tokens=args.max_tokens,
+    )
+    chunked.extract_cohort(
+        notes_df=notes_df,
+        output_dir=work_dir,
+        patient_id_column=args.patient_id_column,
+        text_column=args.text_column,
+        date_column=args.date_column,
+        type_column=args.note_type_column,
+        resume=args.resume,
+    )
+
+    # --- Write JSONL + CSV output ---
+    final_extractions = CheckpointManager(work_dir).load_final_extractions()
+    build_qa_output(final_extractions, output_path)
+
+    print(f"JSONL: {output_path}")
+    print(f"CSV:   {output_path.with_suffix('.csv')}")
     print("Done.")
 
 
